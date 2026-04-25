@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const symbol = searchParams.get('symbol');
-  if (!symbol) return NextResponse.json({ error: 'symbol required' }, { status: 400 });
+  const ticker = searchParams.get('ticker');
+  if (!ticker) return NextResponse.json({ error: 'ticker required' }, { status: 400 });
+
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) return NextResponse.json({ price: null, note: 'no api key' });
+
   try {
-    const resp = await fetch(`https://api.polygon.io/v2/last/trade/${symbol}?apiKey=${process.env.POLYGON_API_KEY}`);
+    const resp = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`
+    );
     const data = await resp.json();
-    return NextResponse.json({ symbol, price: data?.results?.p ?? null });
-  } catch (e) { return NextResponse.json({ error: e.message }, { status: 500 }); }
+    // data.c = current price, data.pc = previous close
+    if (!data.c) return NextResponse.json({ price: null });
+    return NextResponse.json({ price: data.c, change: data.d, changePct: data.dp, prevClose: data.pc });
+  } catch (e) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }
