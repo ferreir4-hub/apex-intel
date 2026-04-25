@@ -10,6 +10,7 @@ CONFIDENCE: [High/Medium/Low]
 
 TESE BULL:
 - ponto
+- ponto
 
 TESE BEAR:
 - ponto
@@ -28,17 +29,21 @@ export async function POST(req) {
     const { stock, history } = await req.json();
     const first = `Analisa: ${stock.t} – ${stock.n}\nSector: ${stock.s}\nValor: €${stock.v.toFixed(2)}\nP&L: ${stock.pnl >= 0 ? '+' : ''}€${Math.abs(stock.pnl).toFixed(2)} (${stock.pp >= 0 ? '+' : ''}${stock.pp.toFixed(2)}%)\nPeso portfolio: ${stock.w.toFixed(2)}%`;
     const msgs = history?.length ? history : [{ role: 'user', content: first }];
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'OPENROUTER_API_KEY not set' }, { status: 500 });
+    const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: SYSTEM, messages: msgs }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'HTTP-Referer': 'https://apex-intel-chi.vercel.app', 'X-Title': 'Apex Intel' },
+      body: JSON.stringify({ model: 'deepseek/deepseek-chat:free', max_tokens: 1000, messages: [{ role: 'system', content: SYSTEM }, ...msgs] }),
     });
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); return NextResponse.json({ error: e.error?.message || `HTTP ${resp.status}` }, { status: resp.status }); }
+    if (!resp.ok) { const err = await resp.json().catch(() => ({})); return NextResponse.json({ error: err.error?.message || `HTTP ${resp.status}` }, { status: resp.status }); }
     const data = await resp.json();
-    const text = data.content[0].text;
+    const text = data.choices[0].message.content;
     const m = text.match(/RATING:\s*(Strong Buy|Buy|Hold|Sell|Strong Sell)/i);
-    const ALL = ['Strong Buy','Buy','Hold','Sell','Strong Sell'];
-    const rating = m ? ALL.find(r => r.toLowerCase() === m[1].toLowerCase()) : null;
-    return NextResponse.json({ text, rating, conv: [...msgs, { role: 'assistant', content: text }] });
+    const found = m ? m[1] : null;
+    const ALL = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'];
+    const rating = found ? ALL.find(r => r.toLowerCase() === found.toLowerCase()) : null;
+    const newConv = [...msgs, { role: 'assistant', content: text }];
+    return NextResponse.json({ text, rating, conv: newConv });
   } catch (e) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
