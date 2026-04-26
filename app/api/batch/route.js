@@ -1,37 +1,61 @@
 import { NextResponse } from 'next/server';
 
-const SYSTEM = `És APEX, analista de Wall Street de elite, IQ 175. Responde sempre em português de Portugal. Directo, sem disclaimers. Data: Abril 2026.
-RATING SCALE: Strong Buy / Buy / Hold / Sell / Strong Sell
-Formato OBRIGATÓRIO:
-RATING: [um dos 5 ratings]
-CONFIDENCE: [High/Medium/Low]
-TESE BULL:
-- ponto
-TESE BEAR:
-- ponto
-CATALISADORES:
-- ponto
-RISCO PRINCIPAL:
-texto 1-2 frases
-VEREDICTO:
-texto 2-3 frases com acção específica`;
+const MODELS = [
+  'google/gemma-3-27b-it:free',
+  'openai/gpt-oss-20b:free',
+  'google/gemma-4-27b-it:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+];
 
 export async function POST(req) {
-  const { stock } = await req.json();
-  const msg = `Analisa: ${stock.t} – ${stock.n}\nSector: ${stock.s}\nValor: €${stock.v.toFixed(2)}\nP&L: ${stock.pnl >= 0 ? '+' : ''}€${Math.abs(stock.pnl).toFixed(2)} (${stock.pp >= 0 ? '+' : ''}${stock.pp.toFixed(2)}%)\nPeso portfolio: ${stock.w.toFixed(2)}%`;
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'OPENROUTER_API_KEY not set' }, { status: 500 });
-  const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'HTTP-Referer': 'https://apex-intel-chi.vercel.app', 'X-Title': 'Apex Intel' },
-    body: JSON.stringify({ model: 'deepseek/deepseek-chat:free', max_tokens: 600, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: msg }] }),
-  });
-  if (!resp.ok) { const err = await resp.json().catch(() => ({})); return NextResponse.json({ error: err.error?.message || `HTTP ${resp.status}` }, { status: resp.status }); }
-  const data = await resp.json();
-  const text = data.choices[0].message.content;
-  const m = text.match(/RATING:\s*(Strong Buy|Buy|Hold|Sell|Strong Sell)/i);
-  const found = m ? m[1] : null;
-  const ALL = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'];
-  const rating = found ? ALL.find(r => r.toLowerCase() === found.toLowerCase()) : null;
-  return NextResponse.json({ ticker: stock.t, text, rating });
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return NextResponse.json({ error: 'OPENROUTER_API_KEY not set' }, { status: 500 });
+
+  let body;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid body' }, { status: 400 }); }
+  const { stock } = body;
+  if (!stock || !stock.t) return NextResponse.json({ error: 'stock required' }, { status: 400 });
+
+  const prompt = `Analisa este stock de forma objectiva e concisa (max 3 frases):
+Ticker: ${stock.t} | Nome: ${stock.n}
+Valor actual: ${stock.v} EUR | P&L: ${stock.pnl > 0 ? '+' : ''}${stock.pnl} EUR (${stock.pp > 0 ? '+' : ''}${stock.pp}%)
+Peso no portfolio: ${stock.w}% | Sector: ${stock.s}
+
+Responde APENAS neste formato JSON exacto (sem markdown, sem codigo, so JSON):
+{"rating":"STRONG_BUY","text":"Analise em portugues de portugal aqui."}
+
+Rating deve ser exactamente um de: STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL`;
+
+  for (const model of MODELS) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + key,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://apex-intel-chi.vercel.app',
+          'X-Title': 'Apex Intel'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 200,
+          temperature: 0.3,
+        }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const raw = data?.choices?.[0]?.message?.content || '';
+      if (!raw) continue;
+      // Parse JSON from response
+      const match = raw.match(/\{[^{}]*"rating"[^{}]*\}/s);
+      if (!match) continue;
+      const parsed = JSON.parse(match[0]);
+      const validRatings = ['STRONG_BUY','BUY','HOLD','SELL','STRONG_SELL'];
+      if (!validRatings.includes(parsed.rating)) continue;
+      return NextResponse.json({ rating: parsed.rating, text: parsed.text || '', model });
+    } catch (_) { continue; }
+  }
+
+  return NextResponse.json({ error: 'All models failed or rate limited. Tenta novamente.' }, { status: 503 });
 }
