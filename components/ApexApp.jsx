@@ -505,7 +505,6 @@ function InsidersPanel({ tickers }) {
         </div>
         <div style={{marginBottom:5,fontSize:12,color:'var(--muted)'}}>Rácio compra/venda: <span style={{color:'var(--red)',fontWeight:700}}>0.59</span> — mercado em distribuição</div>
         <div className="bar-wrap" style={{marginBottom:16}}><div style={{height:'100%',width:'37%',background:'var(--green)'}}></div></div>
-
         <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:8}}>Top 3 — maior actividade de insiders <span style={{fontSize:10,color:'var(--muted)',fontWeight:400}}>(exclui 10b5-1 programadas)</span></div>
         <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
           <div className="card2">
@@ -539,8 +538,7 @@ function InsidersPanel({ tickers }) {
             <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>3 diretores venderam $18M total. Nenhuma compra registada. Sinal de alerta.</div>
           </div>
         </div>
-
-        <div className="card2">(
+        (
     <div>
       <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:16 }}>
         {tickers.slice(0, 16).map(t => (
@@ -601,8 +599,6 @@ function InsidersPanel({ tickers }) {
         </>
       )}
     </div>
-  );
-        </div>
       </div>
     </div>
   );
