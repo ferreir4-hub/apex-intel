@@ -875,8 +875,8 @@ const MACRO_INDICES = [
 ];
 
 function useLivePrices(tickers) {
-  const [prices, setPrices] = React.useState({});
-  React.useEffect(() => {
+  const [prices, setPrices] = useState({});
+  useEffect(() => {
     if (!tickers || tickers.length === 0) return;
     let cancelled = false;
     (async () => {
@@ -896,7 +896,7 @@ function useLivePrices(tickers) {
 }
 
 function MacroPanel() {
-  const [expanded, setExpanded] = React.useState(null);
+  const [expanded, setExpanded] = useState(null);
   const G = { bg:'#08080f', card:'#0e0e1a', accent:'#7c6af7', soft:'#8888aa', border:'#1e1e2e', text:'#e8e8f0' };
   return (
     <div style={{ background:G.card, borderRadius:12, padding:16, border:'1px solid '+G.border }}>
@@ -920,8 +920,8 @@ function MacroPanel() {
 }
 
 function AIAlerts({ portfolio, ratings }) {
-  const [alerts, setAlerts] = React.useState([]);
-  React.useEffect(() => {
+  const [alerts, setAlerts] = useState([]);
+  useEffect(() => {
     if (!portfolio || portfolio.length === 0) return;
     const result = [];
     portfolio.forEach(s => {
