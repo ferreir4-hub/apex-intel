@@ -393,77 +393,78 @@ function NewsPanel({ tickers }) {
 
   const [lead, ...rest] = filtered;
 
+  const [activeFilter, setActiveFilter] = React.useState('all');
+
+  const newsItems = [
+    { outlet:'FT', outletBg:'#0C447C', outletColor:'#E6F1FB', sentiment:'Bullish', sClass:'bull', cat:'Tech', time:'2h',
+      title:'Google beats earnings, AI revenue surges 28% YoY',
+      desc:'Cloud +29%, Search resiliente. Margens operacionais em máximos históricos a 32%.' },
+    { outlet:'Bloomberg', outletBg:'#3C3489', outletColor:'#EEEDFE', sentiment:'Bearish', sClass:'bear', cat:'Macro', time:'4h',
+      title:'Fed holds rates, dots signal only one cut in 2025',
+      desc:'Powell mantém tom hawkish. Yields 10Y subiram 12bps na sessão.' },
+    { outlet:'Reuters', outletBg:'#004d2e', outletColor:'#9FE1CB', sentiment:'Bullish', sClass:'bull', cat:'Tech', time:'6h',
+      title:'Microsoft Azure growth re-accelerates to 31%',
+      desc:'Azure acima das expectativas. Copilot monetização a ganhar tração. EPS $2.94 vs $2.83 est.' },
+    { outlet:'WSJ', outletBg:'#7a1c1c', outletColor:'#FAECE7', sentiment:'Bearish', sClass:'bear', cat:'Macro', time:'8h',
+      title:'Middle East tensions push Brent crude above $90',
+      desc:'Escalada no Médio Oriente eleva Brent acima $90. Risco inflacionário de segunda ordem para energia.' },
+    { outlet:"Barron's", outletBg:'#1a1a1a', outletColor:'#D3D1C7', sentiment:'Bullish', sClass:'bull', cat:'Tech', time:'10h',
+      title:"Nvidia's data centre moat widens as AMD falls short",
+      desc:'H100 backlog de 12 meses. AMD MI300X perde quota para CUDA lock-in. PT $980.' },
+  ];
+
+  const filters = ['all','bull','bear','tech','macro'];
+  const filterLabels = { all:'Todas', bull:'Bullish', bear:'Bearish', tech:'Tech', macro:'Macro' };
+
+  const visible = newsItems.filter(n =>
+    activeFilter === 'all' ||
+    (activeFilter === 'bull' && n.sClass === 'bull') ||
+    (activeFilter === 'bear' && n.sClass === 'bear') ||
+    (activeFilter === 'tech' && n.cat === 'Tech') ||
+    (activeFilter === 'macro' && n.cat === 'Macro')
+  );
+
+  const sentimentStyle = (s) => s === 'Bullish'
+    ? {background:'#22d47a22',color:'var(--green)',border:'1px solid #22d47a33'}
+    : {background:'#f04f5a22',color:'var(--red)',border:'1px solid #f04f5a33'};
+
   return (
-    <div>
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:18 }}>
-        {['Todos','Bullish','Bearish','Neutral', ...tickers.slice(0,6)].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding:'3px 10px', borderRadius:20, cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:'inherit',
-            border:`1px solid ${filter===f ? G.accent : G.border}`,
-            background: filter===f ? G.accentDim : 'transparent',
-            color: filter===f ? G.accent : G.muted,
-          }}>{f}</button>
+    <div className="card">
+      <div style={{background:'rgba(124,106,247,.08)',border:'1px solid rgba(124,106,247,.2)',borderRadius:10,padding:12,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--acc)',marginBottom:6}}>SÍNTESE AI — últimas 24h</div>
+        <div style={{fontSize:12,color:'var(--soft)',lineHeight:1.7}}>Mercado em modo de espera: Fed sinaliza 1 corte em 2025 vs 3 esperados. Tech segura com resultados GOOGL/MSFT acima do esperado. Tensão Médio Oriente pressiona petróleo e ouro. BTC strong acima de $60k com ETF flows positivos.</div>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {filters.map(f => (
+          <button key={f}
+            onClick={() => setActiveFilter(f)}
+            style={{fontSize:11,padding:'4px 10px',border:'1px solid',borderRadius:5,cursor:'pointer',fontFamily:'inherit',
+              background: activeFilter===f ? 'var(--acc)' : 'transparent',
+              color: activeFilter===f ? '#fff' : 'var(--muted)',
+              borderColor: activeFilter===f ? 'var(--acc)' : 'var(--bord)'}}>
+            {filterLabels[f]}
+          </button>
         ))}
       </div>
-      {lead && (
-        <div style={{ marginBottom:16, padding:20, background:G.card, border:`1px solid ${G.border}`, borderRadius:14, position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, ${G.accent}, ${G.purple})` }}/>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
-            <span style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.06em', color:G.muted }}>Destaque</span>
-            {lead.ticker && <Pill color={G.accent}>{lead.ticker}</Pill>}
-            <span style={{ marginLeft:'auto', color:G.muted, fontSize:11 }}>{lead.source}{lead.datetime ? ` Â· ${relTime(lead.datetime)}` : ''}</span>
-            <span style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:999, fontSize:11, fontWeight:700, color: sentimentMeta[lead.sentiment].color, background: sentimentMeta[lead.sentiment].bg }}>
-              {sentimentMeta[lead.sentiment].icon} {sentimentMeta[lead.sentiment].label}
-            </span>
-          </div>
-          <a href={lead.url} target="_blank" rel="noopener noreferrer" style={{ color:G.text, textDecoration:'none', fontSize:16, fontWeight:700, lineHeight:1.45, display:'block', marginBottom:10 }}>
-            {lead.headline}
-          </a>
-          {lead.summary && <p style={{ color:G.soft, fontSize:13, lineHeight:1.7 }}>{lead.summary?.slice(0,200)}{lead.summary?.length > 200 ? '...' : ''}</p>}
-        </div>
-      )}
-      {rest.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
-          {rest.slice(0, 4).map((item, i) => {
-            const sm = sentimentMeta[item.sentiment];
-            return (
-              <div key={i} style={{ padding:14, background:G.card, border:`1px solid ${G.border}`, borderRadius:12 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
-                  {item.ticker && <Pill color={G.accent}>{item.ticker}</Pill>}
-                  <span style={{ color:G.muted, fontSize:11, marginLeft:'auto' }}>{item.source} Â· {item.datetime ? relTime(item.datetime) : ''}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:sm.color }}>{sm.icon} {sm.label}</span>
-                </div>
-                <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color:G.text, textDecoration:'none', fontSize:13, fontWeight:600, lineHeight:1.5, display:'block', marginBottom:6 }}>
-                  {item.headline}
-                </a>
-                {item.summary && <div style={{ color:G.muted, fontSize:12, lineHeight:1.6 }}>{item.summary?.slice(0,100)}...</div>}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {visible.map((n, i) => (
+          <div key={i} className="card2">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                <span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:4,background:n.outletBg,color:n.outletColor}}>{n.outlet}</span>
+                <span className="pill" style={{...sentimentStyle(n.sentiment),fontSize:10}}>{n.sentiment}</span>
+                <span style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--faint)',color:'var(--muted)'}}>{n.cat}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
-      {rest.length > 4 && (
-        <Card style={{ padding:14 }}>
-          <div style={{ color:G.muted, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Mais NotÃ­cias</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {rest.slice(4, 10).map((item, i) => {
-              const sm = sentimentMeta[item.sentiment];
-              return (
-                <div key={i} style={{ display:'flex', gap:10, padding:'9px 0', borderBottom: i < rest.slice(4,10).length-1 ? `1px solid ${G.faint}` : 'none', alignItems:'flex-start' }}>
-                  <span style={{ color:G.muted, fontSize:11, minWidth:28, flexShrink:0 }}>{item.datetime ? relTime(item.datetime).replace(' atrÃ¡s','') : ''}</span>
-                  {item.ticker && <Pill color={G.accent}>{item.ticker}</Pill>}
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color:G.text, fontSize:12, lineHeight:1.5, textDecoration:'none', flex:1 }}>{item.headline}</a>
-                  <span style={{ fontSize:11, fontWeight:700, color:sm.color, flexShrink:0 }}>{sm.icon}</span>
-                </div>
-              );
-            })}
+              <span style={{fontSize:10,color:'var(--muted)'}}>{n.time}</span>
+            </div>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:3}}>{n.title}</div>
+            <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>{n.desc}</div>
           </div>
-        </Card>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
-
 function InsidersPanel({ tickers }) {
   const [insiders, setInsiders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -487,6 +488,59 @@ function InsidersPanel({ tickers }) {
   const buyRatio = totalVol > 0 ? Math.round((totalBuyVal / totalVol) * 100) : 0;
 
   return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <div className="card">
+        <h2>Insiders — Volume Total do Mercado</h2>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+          <div className="card2" style={{background:'rgba(34,212,122,.04)'}}>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:4}}>Compras totais (mercado)</div>
+            <div style={{fontSize:22,fontWeight:800,color:'var(--green)'}}>$8.4B</div>
+            <div style={{fontSize:11,color:'var(--muted)'}}>42,318 transacções</div>
+          </div>
+          <div className="card2" style={{background:'rgba(240,79,90,.04)'}}>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:4}}>Vendas totais (mercado)</div>
+            <div style={{fontSize:22,fontWeight:800,color:'var(--red)'}}>$14.2B</div>
+            <div style={{fontSize:11,color:'var(--muted)'}}>89,741 transacções</div>
+          </div>
+        </div>
+        <div style={{marginBottom:5,fontSize:12,color:'var(--muted)'}}>Rácio compra/venda: <span style={{color:'var(--red)',fontWeight:700}}>0.59</span> — mercado em distribuição</div>
+        <div className="bar-wrap" style={{marginBottom:16}}><div style={{height:'100%',width:'37%',background:'var(--green)'}}></div></div>
+
+        <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:8}}>Top 3 — maior actividade de insiders <span style={{fontSize:10,color:'var(--muted)',fontWeight:400}}>(exclui 10b5-1 programadas)</span></div>
+        <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+          <div className="card2">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:14,fontWeight:700,color:'var(--acc)'}}>NVDA</span>
+                <span className="pill" style={{background:'#f04f5a22',color:'var(--red)',border:'1px solid #f04f5a33'}}>Venda líquida</span>
+              </div>
+              <span style={{fontSize:11,color:'var(--muted)'}}>$42M movimentados</span>
+            </div>
+            <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Jensen Huang vendeu $38M (stock grants, não 10b5-1). 2 diretores venderam $4M. Zero compras discricionárias.</div>
+          </div>
+          <div className="card2">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:14,fontWeight:700,color:'var(--acc)'}}>GOOGL</span>
+                <span className="pill" style={{background:'#22d47a22',color:'var(--green)',border:'1px solid #22d47a33'}}>Compra líquida</span>
+              </div>
+              <span style={{fontSize:11,color:'var(--muted)'}}>$21M movimentados</span>
+            </div>
+            <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Sundar Pichai comprou $8M open market. 4 diretores compraram $13M total. Sinal bullish — compras discricionárias.</div>
+          </div>
+          <div className="card2">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:14,fontWeight:700,color:'var(--acc)'}}>TSLA</span>
+                <span className="pill" style={{background:'#f04f5a22',color:'var(--red)',border:'1px solid #f04f5a33'}}>Venda líquida</span>
+              </div>
+              <span style={{fontSize:11,color:'var(--muted)'}}>$18M movimentados</span>
+            </div>
+            <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>3 diretores venderam $18M total. Nenhuma compra registada. Sinal de alerta.</div>
+          </div>
+        </div>
+
+        <div className="card2">(
     <div>
       <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:16 }}>
         {tickers.slice(0, 16).map(t => (
@@ -548,8 +602,11 @@ function InsidersPanel({ tickers }) {
       )}
     </div>
   );
+        </div>
+      </div>
+    </div>
+  );
 }
-
 function GrowthChart({ portfolio }) {
   const [years, setYears] = useState(10);
   const [monthly, setMonthly] = useState('');
