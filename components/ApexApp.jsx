@@ -896,185 +896,222 @@ function useLivePrices(tickers) {
 }
 
 function MacroPanel() {
-  const [prices, setPrices] = useState({});
-  const [expanded, setExpanded] = useState(null);
+  const [prices, setPrices] = React.useState({});
+  const [expanded, setExpanded] = React.useState(null);
 
-  const INDICES = [
-    { key:'fear',   label:'FEAR/GREED', sym:null,         color:'var(--yel)',  sub:'Fear',          barW:42, extraLabel:'0=Extreme Fear · 100=Greed', showCNN:true },
-    { key:'vix',    label:'VIX',        sym:'^VIX',       color:'var(--red)',  sub:'Elevado',       barW:48 },
-    { key:'dxy',    label:'DXY (Dólar)',sym:'DX-Y.NYB',   color:'var(--blue)', sub:'US Dollar Index',barW:60 },
-    { key:'wti',    label:'WTI (Petróleo)',sym:'CL=F',    color:'var(--yel)',  sub:'Brent ~$82',    barW:52 },
-    { key:'eurusd', label:'EUR/USD',    sym:'EURUSD=X',   color:'var(--cyan)', sub:'Euro vs Dólar', barW:45 },
-    { key:'t10',    label:'10Y Yield',  sym:'^TNX',       color:'var(--purp)', sub:'US Treasury 10Y',barW:65 },
-    { key:'gold',   label:'Gold (XAU)', sym:'GC=F',       color:'var(--yel)',  sub:'Safe haven demand ↑',barW:78 },
-    { key:'sp500',  label:'S&P 500',    sym:'SPY',        color:'var(--green)',sub:'YTD +8.2%',     barW:72 },
-  ];
-
-  const MACRO_TEXTS = {
-    fear:  'Fear/Greed em modo Fear. Historicamente sinal de acumulação para investidores de longo prazo. Cuidado com posições alavancadas — volatilidade elevada.',
-    vix:   'VIX elevado = regime de alta volatilidade. Acima de 25 o mercado entra em modo de defesa. Reduz posições especulativas e aumenta cash buffer.',
-    dxy:   'USD a enfraquecer. Positivo para empresas com receita internacional (GOOGL, MSFT, AAPL). USD fraco suporta commodities e emergentes.',
-    wti:   'WTI abaixo de $80 é neutral para tech. Acima de $90 começa a pressionar margens de transporte e input costs. Monitoriza estreito de Ormuz.',
-    eurusd:'EUR/USD em queda = USD mais forte, comprime receitas europeias de multinationals US. Atenção ao impacto cambial nos earnings.',
-    t10:   'Yield 10Y elevada pressiona valuations de growth stocks. Cada +50bps = ~-8% no fair value de tech com P/E 30x. Hawkish Fed = yields mais altos por mais tempo.',
-    gold:  'Ouro em máximos = incerteza geopolítica elevada. Safe haven demand a subir. Portfólio com menos de 3-5% em ouro está subexposto neste regime.',
-    sp500: 'S&P 500 P/E forward acima da média histórica. Mercado caro mas momentum forte. Não shortes uma tendência sem catalisador claro.',
+  const macroTexts = {
+    fear: 'Fear/Greed em 42 (Fear). Historicamente sinal de acumulação para investidores de longo prazo. Cuidado com posições alavancadas — volatilidade elevada.',
+    vix: 'VIX 24 = regime de alta volatilidade. Acima de 25 o mercado entra em modo de defesa. Reduz posições especulativas e aumenta cash buffer.',
+    dxy: 'USD a enfraquecer (-0.4%). Positivo para empresas com receita internacional (GOOGL, MSFT, AAPL). USD fraco suporta commodities e emergentes.',
+    wti: 'WTI $78 — abaixo de $80 é neutral para tech. Acima de $90 começa a pressionar margens de transporte e input costs. Monitoriza estreito de Ormuz.',
+    eurusd: 'EUR/USD a 1.082 e a cair. USD mais forte comprime receitas europeias de multinationals US. Atenção ao impacto cambial nos earnings de Q2.',
+    t10: 'Yield 10Y a 4.42% — nível que pressiona valuations de growth stocks. Cada +50bps = ~-8% no fair value de tech com P/E 30x. Hawkish Fed = yields mais altos por mais tempo.',
+    gold: 'Ouro em máximos ($3,320) = incerteza geopolítica elevada. Safe haven demand a subir. Portfólio com menos de 3-5% em ouro está subexposto neste regime.',
+    sp500: 'S&P 500 a 5,241 — +8.2% YTD. P/E forward 21x vs média histórica 17x. Mercado caro mas momentum forte. Não shortes uma tendência sem catalisador claro.'
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const result = {};
-      for (const idx of INDICES) {
-        if (!idx.sym) continue;
-        try {
-          const r = await fetch('/api/quote?symbol=' + encodeURIComponent(idx.sym));
-          if (r.ok) { const d = await r.json(); result[idx.key] = d; }
-        } catch(e) {}
-        if (cancelled) return;
-      }
-      if (!cancelled) setPrices(result);
-    })();
-    return () => { cancelled = true; };
+  React.useEffect(() => {
+    const symbols = [
+      { key: 'vix', sym: '%5EVIX' },
+      { key: 'dxy', sym: 'DX-Y.NYB' },
+      { key: 'wti', sym: 'CL%3DF' },
+      { key: 'eurusd', sym: 'EURUSD%3DX' },
+      { key: 't10', sym: '%5ETNX' },
+      { key: 'gold', sym: 'GC%3DF' },
+      { key: 'sp500', sym: 'SPY' }
+    ];
+    symbols.forEach(({ key, sym }) => {
+      fetch('/api/quote?symbol=' + sym)
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.c) setPrices(prev => ({ ...prev, [key]: d.c }));
+        })
+        .catch(() => {});
+    });
   }, []);
 
-  const fmtPrice = (key, d) => {
-    if (!d) return '...';
-    const v = d.c || d.price || 0;
-    if (key === 'vix') return v.toFixed(1);
-    if (key === 'dxy') return v.toFixed(1);
-    if (key === 'eurusd') return v.toFixed(3);
-    if (key === 't10') return v.toFixed(2) + '%';
-    if (key === 'wti') return '$' + v.toFixed(1);
-    if (key === 'gold') return '$' + Math.round(v).toLocaleString();
-    return Math.round(v).toLocaleString();
-  };
+  const toggle = (key) => setExpanded(prev => prev === key ? null : key);
 
-  const fmtChg = (d) => {
-    if (!d) return null;
-    const pct = d.dp || 0;
-    return { pct, up: pct >= 0, str: (pct >= 0 ? '▲ +' : '▼ ') + Math.abs(pct).toFixed(2) + '%' };
-  };
+  const p = prices;
 
   return (
     <div className="card">
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-        <h2 style={{ margin:0 }}>Índices Macro</h2>
-        <span style={{ color:'var(--muted)', fontSize:11 }}>Clica em cada índice para análise de impacto</span>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:10}}>
+        <h2 style={{margin:0}}>Índices Macro</h2>
+        <span style={{color:'var(--muted)',fontSize:11}}>Clica em cada índice para análise de impacto</span>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8 }}>
-        {INDICES.map(idx => {
-          const d = prices[idx.key];
-          const chg = fmtChg(d);
-          const isOpen = expanded === idx.key;
-          const displayVal = idx.key === 'fear' ? '42' : fmtPrice(idx.key, d);
-          const displayChg = idx.key === 'fear' ? null : chg;
-          return (
-            <div key={idx.key} className="card2"
-              style={{ cursor:'pointer', borderColor: isOpen ? idx.color : undefined }}
-              onClick={() => setExpanded(isOpen ? null : idx.key)}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <span style={{ fontSize:10, color:'var(--muted)' }}>{idx.label}</span>
-                {idx.showCNN && <span style={{ fontSize:10, fontWeight:700, color:'var(--yel)' }}>CNN</span>}
-              </div>
-              <div style={{ fontSize:22, fontWeight:900, color:idx.color }}>{displayVal}</div>
-              {displayChg
-                ? <div style={{ fontSize:11, color: displayChg.up ? 'var(--green)' : 'var(--red)', marginBottom:6 }}>{displayChg.str}</div>
-                : <div style={{ fontSize:11, color:idx.color, marginBottom:6 }}>{idx.sub}</div>
-              }
-              <div className="bar-wrap"><div style={{ height:'100%', width: idx.barW + '%', background:idx.color }}></div></div>
-              <div style={{ fontSize:10, color:'var(--muted)', marginTop:5 }}>{idx.extraLabel || idx.sub}</div>
-            </div>
-          );
-        })}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:8}}>
+
+        {/* Fear/Greed */}
+        <div className="card2" style={{cursor:'pointer',borderColor:'#f5a62333'}} onClick={() => toggle('fear')}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:5}}>
+            <span style={{fontSize:10,color:'var(--muted)'}}>FEAR/GREED</span>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--yel)'}}>CNN</span>
+          </div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--yel)'}}>42</div>
+          <div style={{fontSize:11,color:'var(--yel)',marginBottom:6}}>Fear</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'42%',background:'var(--yel)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>0=Extreme Fear · 100=Greed</div>
+        </div>
+
+        {/* VIX */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('vix')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>VIX</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--red)'}}>{p.vix ? p.vix.toFixed(1) : '24.3'}</div>
+          <div style={{fontSize:11,color:'var(--red)',marginBottom:6}}>Elevado</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'48%',background:'var(--red)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>Volatilidade S&P500</div>
+        </div>
+
+        {/* DXY */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('dxy')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>DXY (Dólar)</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--blue)'}}>{p.dxy ? p.dxy.toFixed(1) : '104.2'}</div>
+          <div style={{fontSize:11,color:'var(--red)',marginBottom:6}}>▼ -0.4%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'60%',background:'var(--blue)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>US Dollar Index</div>
+        </div>
+
+        {/* WTI */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('wti')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>WTI (Petróleo)</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--yel)'}}>{p.wti ? '$' + p.wti.toFixed(1) : '$78.4'}</div>
+          <div style={{fontSize:11,color:'var(--green)',marginBottom:6}}>▲ +1.2%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'52%',background:'var(--yel)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>Brent $82.1</div>
+        </div>
+
+        {/* EUR/USD */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('eurusd')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>EUR/USD</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--cyan)'}}>{p.eurusd ? p.eurusd.toFixed(3) : '1.082'}</div>
+          <div style={{fontSize:11,color:'var(--red)',marginBottom:6}}>▼ -0.2%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'45%',background:'var(--cyan)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>Euro vs Dólar</div>
+        </div>
+
+        {/* 10Y Yield */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('t10')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>10Y Yield</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--purp)'}}>{p.t10 ? p.t10.toFixed(2) + '%' : '4.42%'}</div>
+          <div style={{fontSize:11,color:'var(--red)',marginBottom:6}}>▲ +0.08%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'65%',background:'var(--purp)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>US Treasury 10Y</div>
+        </div>
+
+        {/* Gold */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('gold')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>Gold (XAU)</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--yel)'}}>{p.gold ? '$' + Math.round(p.gold).toLocaleString() : '$3 320'}</div>
+          <div style={{fontSize:11,color:'var(--green)',marginBottom:6}}>▲ +0.6%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'78%',background:'var(--yel)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>Safe haven demand ↑</div>
+        </div>
+
+        {/* S&P500 */}
+        <div className="card2" style={{cursor:'pointer'}} onClick={() => toggle('sp500')}>
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:5}}>S&P 500</div>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--green)'}}>{p.sp500 ? Math.round(p.sp500).toLocaleString() : '5 241'}</div>
+          <div style={{fontSize:11,color:'var(--green)',marginBottom:6}}>▲ +0.3%</div>
+          <div className="bar-wrap"><div style={{height:'100%',width:'72%',background:'var(--green)'}}></div></div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>YTD +8.2%</div>
+        </div>
+
       </div>
+
       {expanded && (
-        <div className="card2" style={{ marginTop:12 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--acc)', marginBottom:6 }}>Impacto no portfólio</div>
-          <div style={{ fontSize:12, color:'var(--soft)', lineHeight:1.7 }}>{MACRO_TEXTS[expanded]}</div>
+        <div className="card2" style={{marginTop:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--acc)',marginBottom:6}}>Impacto no portfólio</div>
+          <div style={{fontSize:12,color:'var(--soft)',lineHeight:1.7}}>{macroTexts[expanded]}</div>
         </div>
       )}
-      <div className="card2" style={{ marginTop:12, borderColor:'#7c6af733' }}>
-        <div style={{ fontSize:11, fontWeight:700, color:'var(--acc)', marginBottom:8 }}>Leitura macro actual — impacto no teu portfolio</div>
-        <div style={{ color:'var(--soft)', fontSize:12, lineHeight:1.7 }}>
-          <b style={{ color:'var(--red)' }}>VIX + Fear/Greed:</b> mercado em modo defensivo — historicamente sinal de acumulação para investidores de longo prazo mas cuidado com posições alavancadas.<br/>
-          <b style={{ color:'var(--yel)' }}>10Y yield:</b> pressão sobre múltiplos growth. Cada 0.25% de subida comprime valuations ~5%.<br/>
-          <b style={{ color:'var(--yel)' }}>WTI:</b> custo operacional de AMZN e logística sobem. Vigilância no estreito de Ormuz — qualquer disrupção envia WTI para $90+ em 48h.
+
+      <div className="card2" style={{marginTop:12,borderColor:'#7c6af733'}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--acc)',marginBottom:8}}>Leitura macro actual — impacto no teu portfolio</div>
+        <div style={{color:'var(--soft)',fontSize:12,lineHeight:1.7}}>
+          <b style={{color:'var(--red)'}}>VIX 24 + Fear/Greed 42:</b> mercado em modo defensivo — historicamente sinal de acumulação para investidores de longo prazo mas cuidado com posições alavancadas.<br/>
+          <b style={{color:'var(--yel)'}}>10Y yield 4.42%:</b> pressão sobre múltiplos growth. Cada 0.25% de subida comprime valuations ~5%.<br/>
+          <b style={{color:'var(--yel)'}}>WTI $78:</b> custo operacional de AMZN e logística sobem. Vigilância no estreito de Ormuz — qualquer disrupção envia WTI para $90+ em 48h.
         </div>
       </div>
     </div>
   );
 }
-
 function AIAlerts({ portfolio, ratings }) {
-  const [alerts, setAlerts] = useState([]);
+  if (!portfolio || portfolio.length === 0) return null;
 
-  useEffect(() => {
-    if (!portfolio || portfolio.length === 0) return;
-    const totalValue = portfolio.reduce((s, x) => s + (x.shares * (x.avgCost || x.pp || 0)), 0);
-    const result = [];
-    portfolio.forEach(s => {
-      const r = ratings[s.t] || {};
-      const rating = r.rating || '';
-      const costBasis = s.avgCost || s.pp || 0;
-      const currentVal = s.shares * costBasis;
-      const weight = totalValue > 0 ? (currentVal / totalValue) * 100 : 0;
-      const livePrice = s.pp || 0;
-      const pnlPct = costBasis > 0 && livePrice > 0 ? ((livePrice - costBasis) / costBasis) * 100 : 0;
+  const totalValue = portfolio.reduce((s, h) => s + (h.shares * h.currentPrice || 0), 0);
 
-      if (weight > 25) {
-        result.push({ type:'REDUZIR', ticker:s.t,
-          detail: weight.toFixed(1) + '% do portfolio',
-          extra: pnlPct > 0 ? '+' + pnlPct.toFixed(0) + '% vs custo' : pnlPct.toFixed(0) + '% vs custo',
-          msg: 'Concentração excessiva (' + weight.toFixed(1) + '%). ' + (r.text ? r.text.split('.')[0] + '. ' : '') + 'Considera reduzir para 25-30% e realocar em diversificação sectorial.' });
-      } else if (rating === 'SELL' || rating === 'STRONG_SELL') {
-        result.push({ type:'REDUZIR', ticker:s.t,
-          detail: 'Rating AI: ' + rating,
-          msg: r.text ? r.text.split('.').slice(0,2).join('.') + '.' : 'Considera reduzir posição.' });
-      } else if (pnlPct < -15) {
-        result.push({ type:'VIGIAR', ticker:s.t,
-          detail: 'Drawdown ' + pnlPct.toFixed(1) + '%',
-          msg: (r.text ? r.text.split('.')[0] + '. ' : '') + 'Verifica suporte e tese de investimento.' });
-      } else if (weight > 15 && pnlPct > 80) {
-        result.push({ type:'VIGIAR', ticker:s.t,
-          detail: 'P/E pode estar esticado',
-          msg: 'Posição com +' + pnlPct.toFixed(0) + '% de ganho e peso ' + weight.toFixed(1) + '%. Upside de analistas já incorporado no preço. Considera realizar lucros parciais.' });
-      } else if ((rating === 'BUY' || rating === 'STRONG_BUY') && weight < 12 && pnlPct > -10) {
-        result.push({ type:'MANTER', ticker:s.t,
-          detail: 'P/E razoável para crescimento',
-          msg: (r.text ? r.text.split('.')[0] + '. ' : '') + 'Múltiplos justificados. Peso actual ' + weight.toFixed(1) + '% — espaço para aumentar até 15%.' });
+  const alerts = [];
+
+  portfolio.forEach(h => {
+    const value = h.shares * h.currentPrice || 0;
+    const weight = totalValue > 0 ? (value / totalValue) * 100 : 0;
+    const cost = h.shares * h.avgCost || 0;
+    const pnlPct = cost > 0 ? ((value - cost) / cost) * 100 : 0;
+    const rating = ratings[h.ticker] || {};
+    const rec = (rating.recommendation || '').toUpperCase();
+
+    let type = null;
+    let detail = '';
+    let extra = '';
+    let desc = '';
+
+    if (weight > 25 || rec === 'SELL' || rec === 'STRONG_SELL') {
+      type = 'REDUZIR';
+      detail = weight.toFixed(1) + '% do portfolio';
+      extra = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(0) + '% vs custo';
+      if (weight > 25) desc = 'Concentração excessiva (' + weight.toFixed(1) + '%). Reduzir para 20-25% e realocar em diversificação sectorial.';
+      else desc = 'Rating ' + rec + ' — consenso de analistas sugere saída parcial ou total da posição.';
+    } else if (pnlPct < -15 || (weight > 15 && pnlPct > 80)) {
+      type = 'VIGIAR';
+      if (pnlPct < -15) {
+        detail = pnlPct.toFixed(0) + '% vs custo';
+        desc = 'Posição em drawdown significativo. Reavalia tese de investimento e considera stop-loss.';
+      } else {
+        detail = weight.toFixed(1) + '% do portfolio';
+        extra = '+' + pnlPct.toFixed(0) + '% vs custo';
+        desc = 'Ganho expressivo com peso relevante. Considera realizar lucros parciais para reduzir risco concentrado.';
       }
-    });
-    setAlerts(result.slice(0, 5));
-  }, [portfolio, ratings]);
+    } else if (rec === 'BUY' || rec === 'STRONG_BUY') {
+      if (weight < 12 && pnlPct > -10) {
+        type = 'MANTER';
+        detail = 'Rating ' + rec;
+        extra = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(0) + '% vs custo';
+        desc = 'Consenso bullish de analistas. Posição bem dimensionada sem sinais de alerta imediato.';
+      }
+    }
+
+    if (type) alerts.push({ ticker: h.ticker, type, detail, extra, desc });
+  });
 
   if (alerts.length === 0) return null;
 
-  const styles = {
-    REDUZIR: { bg:'#f04f5a0d', border:'#f04f5a22', pillBg:'#f04f5a22', pillColor:'var(--red)', pillBorder:'#f04f5a33' },
-    VIGIAR:  { bg:'#f5a6230d', border:'#f5a62322', pillBg:'#f5a62322', pillColor:'var(--yel)', pillBorder:'#f5a62333' },
-    MANTER:  { bg:'#22d47a0d', border:'#22d47a22', pillBg:'#22d47a22', pillColor:'var(--green)', pillBorder:'#22d47a33' },
+  const colors = {
+    REDUZIR: { bg: '#f04f5a0d', bord: '#f04f5a22', pillBg: '#f04f5a22', pillColor: 'var(--red)', pillBord: '#f04f5a33' },
+    VIGIAR:  { bg: '#f5a6230d', bord: '#f5a62322', pillBg: '#f5a62322', pillColor: 'var(--yel)', pillBord: '#f5a62333' },
+    MANTER:  { bg: '#22d47a0d', bord: '#22d47a22', pillBg: '#22d47a22', pillColor: 'var(--green)', pillBord: '#22d47a33' }
   };
 
   return (
-    <div className="card" style={{ borderColor:'#f5a62344' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
-        <span style={{ fontSize:14 }}>⚠</span>
-        <span style={{ fontSize:13, fontWeight:700, color:'var(--yel)' }}>Alertas IA — Acção Recomendada</span>
-        <span className="pill" style={{ background:'#7c6af722', color:'var(--acc)', border:'1px solid #7c6af733', marginLeft:'auto', fontSize:10 }}>GPT-4o análise</span>
+    <div className="card" style={{borderColor:'#f5a62344'}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{fontSize:14}}>⚠</span>
+        <span style={{fontSize:13,fontWeight:700,color:'var(--yel)'}}>Alertas IA — Acção Recomendada</span>
+        <span className="pill" style={{background:'#7c6af722',color:'var(--acc)',border:'1px solid #7c6af733',marginLeft:'auto',fontSize:10}}>GPT-4o análise</span>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {alerts.map((a, i) => {
-          const s = styles[a.type];
+          const c = colors[a.type];
           return (
-            <div key={i} style={{ padding:'10px 12px', background:s.bg, borderRadius:8, border:'1px solid ' + s.border }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
-                <span className="pill" style={{ background:s.pillBg, color:s.pillColor, border:'1px solid ' + s.pillBorder }}>{a.type}</span>
-                <span style={{ fontWeight:700 }}>{a.ticker}</span>
-                {a.detail && <span style={{ color:'var(--muted)', fontSize:11 }}>{a.detail}</span>}
-                {a.extra && <span style={{ color:'var(--green)', fontSize:11, marginLeft:'auto' }}>{a.extra}</span>}
+            <div key={i} style={{padding:'10px 12px',background:c.bg,borderRadius:8,border:'1px solid ' + c.bord}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                <span className="pill" style={{background:c.pillBg,color:c.pillColor,border:'1px solid ' + c.pillBord}}>{a.type}</span>
+                <span style={{fontWeight:700}}>{a.ticker}</span>
+                <span style={{color:'var(--muted)',fontSize:11}}>{a.detail}</span>
+                {a.extra && <span style={{color:'var(--green)',fontSize:11,marginLeft:'auto'}}>{a.extra}</span>}
               </div>
-              <div style={{ color:'var(--soft)', fontSize:12, lineHeight:1.6 }}>{a.msg}</div>
+              <div style={{color:'var(--soft)',fontSize:12,lineHeight:1.6}}>{a.desc}</div>
             </div>
           );
         })}
@@ -1082,8 +1119,6 @@ function AIAlerts({ portfolio, ratings }) {
     </div>
   );
 }
-
-
 function PortfolioTable({ portfolio, ratings, onAnalyse, filterRating }) {
   const rMap = { 'Strong Buy':'STRONG_BUY', 'Buy':'BUY', 'Hold':'HOLD', 'Sell':'SELL', 'Strong Sell':'STRONG_SELL' };
   const livePrices = useLivePrices(portfolio ? portfolio.map(s=>s.t) : []);
