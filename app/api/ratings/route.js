@@ -1,34 +1,38 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// In-memory store as fallback when Supabase unavailable
+const memStore = {};
+
 export async function GET() {
-  if (!supabase) return NextResponse.json({});
-
-  const { data, error } = await supabase
-    .from('ratings')
-    .select('ticker, rating, confidence, analysis_text, created_at')
-    .order('created_at', { ascending: false });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const map = {};
-  for (const row of data) {
-    if (!map[row.ticker]) map[row.ticker] = row.rating;
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('ratings').select('ticker,rating,analysis');
+      if (!error && data) {
+        const out = {};
+        data.forEach(r => { out[r.ticker] = { rating: r.rating, text: r.analysis }; });
+        return NextResponse.json(out);
+      }
+    } catch (_) {}
   }
-  return NextResponse.json(map);
+  // Fallback to in-memory
+  return NextResponse.json(memStore);
 }
 
 export async function POST(req) {
-  const { ticker, rating, confidence, analysis_text } = await req.json();
-  if (!ticker || !rating) return NextResponse.json({ error: 'ticker e rating obrigatorios' }, { status: 400 });
+  let body;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid body' }, { status: 400 }); }
+  const { ticker, rating, text } = body;
+  if (!ticker || !rating) return NextResponse.json({ error: 'ticker and rating required' }, { status: 400 });
 
-  if (!supabase) return NextResponse.json({ ok: true, note: 'supabase not configured' });
+  // Always store in memory
+  memStore[ticker] = { rating, text: text || '' };
 
-  const { error } = await supabase.from('ratings').upsert(
-    { ticker, rating, confidence: confidence || null, analysis_text: analysis_text || null },
-    { onConflict: 'ticker' }
-  );
+  if (supabase) {
+    try {
+      await supabase.from('ratings').upsert({ ticker, rating, analysis: text || '' }, { onConflict: 'ticker' });
+    } catch (_) {}
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
