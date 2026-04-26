@@ -28,10 +28,10 @@ const INSIDER_POSITIONS = {
   'Nadella Satya': 'CEO', 'Smith Brad': 'President',
 };
 
-const fmt    = n => n == null ? '—' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
-const fmtK   = n => { if (n == null) return '—'; if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1)+'M'; if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(0)+'K'; return Math.abs(n).toFixed(0); };
-const fmtPct = n => n == null ? '—' : (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
-const relTime = ts => { const d = Date.now()/1000 - ts; if (d < 3600) return Math.floor(d/60)+'m átrás'; if (d < 86400) return Math.floor(d/3600)+'h atrás'; return Math.floor(d/86400)+'d atrás'; };
+const fmt    = n => n == null ? 'â' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
+const fmtK   = n => { if (n == null) return 'â'; if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1)+'M'; if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(0)+'K'; return Math.abs(n).toFixed(0); };
+const fmtPct = n => n == null ? 'â' : (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+const relTime = ts => { const d = Date.now()/1000 - ts; if (d < 3600) return Math.floor(d/60)+'m Ã¡trÃ¡s'; if (d < 86400) return Math.floor(d/3600)+'h atrÃ¡s'; return Math.floor(d/86400)+'d atrÃ¡s'; };
 
 function normalisePortfolio(raw) {
   const total = raw.reduce((s, p) => s + (p.v || p.value || 0), 0);
@@ -135,7 +135,7 @@ function ProjectionChart({ currentPrice, bearCagr, baseCagr, bullCagr, years = 5
   return (
     <div style={{ padding:14, background:G.card2, borderRadius:10, border:`1px solid ${G.border}` }}>
       <div style={{ color:G.muted, fontSize:10, marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>
-        Projecção Preço/Share · {years} Anos · {ticker}
+        ProjecÃ§Ã£o PreÃ§o/Share Â· {years} Anos Â· {ticker}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width:'100%', display:'block', marginBottom:10 }}>
         {gridPcts.map(p => {
@@ -198,7 +198,7 @@ function AnalystPanel({ ticker }) {
     <div style={{ marginTop:0 }}>
       <div style={{ padding:14, background:G.card2, borderRadius:10, border:`1px solid ${G.border}`, marginBottom:12 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-          <span style={{ color:G.muted, fontSize:12 }}>Wall Street · {total} analistas</span>
+          <span style={{ color:G.muted, fontSize:12 }}>Wall Street Â· {total} analistas</span>
           <Pill color={meta.color} bg={meta.bg}>{meta.label}</Pill>
           {period && <span style={{ color:G.muted, fontSize:11, marginLeft:'auto' }}>{period}</span>}
         </div>
@@ -213,7 +213,7 @@ function AnalystPanel({ ticker }) {
         </>}
       </div>
       <div style={{ padding:14, background:G.card2, borderRadius:10, border:`1px solid ${G.border}`, marginBottom:12 }}>
-        <div style={{ color:G.muted, fontSize:10, marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>Distribuição Sentimento</div>
+        <div style={{ color:G.muted, fontSize:10, marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>DistribuiÃ§Ã£o Sentimento</div>
         <SentimentBar bullish={bullish} neutral={neutral} bearish={bearish} />
         <div style={{ color:G.muted, fontSize:10, marginTop:7 }}>Calculado com base nos {total} analistas activos</div>
       </div>
@@ -262,13 +262,13 @@ function AnalysisPanel({ stock, onClose }) {
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', display:'flex', alignItems:'flex-start', justifyContent:'center', zIndex:1000, padding:20, overflowY:'auto' }}>
       <div style={{ background:G.card, border:`1px solid ${G.border}`, borderRadius:16, padding:24, maxWidth:680, width:'100%', position:'relative', margin:'auto' }}>
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', color:G.muted, cursor:'pointer', fontSize:18, lineHeight:1 }}>✕</button>
+        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', color:G.muted, cursor:'pointer', fontSize:18, lineHeight:1 }}>â</button>
         <div style={{ marginBottom:14 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:3 }}>
             <span style={{ color:G.text, fontSize:21, fontWeight:900 }}>{stock.ticker}</span>
             <span style={{ color:G.muted, fontSize:13 }}>{stock.name}</span>
           </div>
-          <div style={{ color:G.muted, fontSize:12 }}>{fmt(stock.value)} · {fmtPct(stock.pnlPct)} · {stock.weight?.toFixed(1)}% portfolio</div>
+          <div style={{ color:G.muted, fontSize:12 }}>{fmt(stock.value)} Â· {fmtPct(stock.pnlPct)} Â· {stock.weight?.toFixed(1)}% portfolio</div>
         </div>
         <AnalystPanel ticker={stock.ticker} />
         <div style={{ marginBottom:12 }}>
@@ -346,7 +346,7 @@ function BatchAnalyser({ portfolio, ratings, setRatings }) {
       )}
       {done && (
         <div style={{ color:G.green, fontSize:13 }}>
-          ✓ {rated} analisados
+          â {rated} analisados
           <button onClick={() => { setDone(false); handleRun(); }} style={{ marginLeft:8, background:'none', border:`1px solid ${G.border}`, color:G.muted, borderRadius:6, padding:'2px 8px', cursor:'pointer', fontSize:11 }}>
             Reanalisar
           </button>
@@ -380,16 +380,16 @@ function NewsPanel({ tickers }) {
   };
 
   const sentimentMeta = {
-    bullish: { icon: '▲', color: G.green, label: 'Bullish', bg: G.green + '15' },
-    bearish: { icon: '▼', color: G.red,   label: 'Bearish', bg: G.red   + '15' },
-    neutral: { icon: '●', color: G.muted, label: 'Neutral', bg: G.faint },
+    bullish: { icon: 'â²', color: G.green, label: 'Bullish', bg: G.green + '15' },
+    bearish: { icon: 'â¼', color: G.red,   label: 'Bearish', bg: G.red   + '15' },
+    neutral: { icon: 'â', color: G.muted, label: 'Neutral', bg: G.faint },
   };
 
   const taggedNews = news.map(item => ({ ...item, sentiment: getSentiment(item.headline, item.summary) }));
   const filtered = filter === 'Todos' ? taggedNews : taggedNews.filter(n => n.sentiment === filter.toLowerCase());
 
   if (loading) return <div style={{ color:G.muted, padding:40, textAlign:'center' }}><Spinner /></div>;
-  if (!news.length) return <div style={{ color:G.muted, padding:40, textAlign:'center' }}>Sem notícias disponíveis.</div>;
+  if (!news.length) return <div style={{ color:G.muted, padding:40, textAlign:'center' }}>Sem notÃ­cias disponÃ­veis.</div>;
 
   const [lead, ...rest] = filtered;
 
@@ -411,7 +411,7 @@ function NewsPanel({ tickers }) {
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
             <span style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.06em', color:G.muted }}>Destaque</span>
             {lead.ticker && <Pill color={G.accent}>{lead.ticker}</Pill>}
-            <span style={{ marginLeft:'auto', color:G.muted, fontSize:11 }}>{lead.source}{lead.datetime ? ` · ${relTime(lead.datetime)}` : ''}</span>
+            <span style={{ marginLeft:'auto', color:G.muted, fontSize:11 }}>{lead.source}{lead.datetime ? ` Â· ${relTime(lead.datetime)}` : ''}</span>
             <span style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:999, fontSize:11, fontWeight:700, color: sentimentMeta[lead.sentiment].color, background: sentimentMeta[lead.sentiment].bg }}>
               {sentimentMeta[lead.sentiment].icon} {sentimentMeta[lead.sentiment].label}
             </span>
@@ -430,7 +430,7 @@ function NewsPanel({ tickers }) {
               <div key={i} style={{ padding:14, background:G.card, border:`1px solid ${G.border}`, borderRadius:12 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
                   {item.ticker && <Pill color={G.accent}>{item.ticker}</Pill>}
-                  <span style={{ color:G.muted, fontSize:11, marginLeft:'auto' }}>{item.source} · {item.datetime ? relTime(item.datetime) : ''}</span>
+                  <span style={{ color:G.muted, fontSize:11, marginLeft:'auto' }}>{item.source} Â· {item.datetime ? relTime(item.datetime) : ''}</span>
                   <span style={{ fontSize:11, fontWeight:700, color:sm.color }}>{sm.icon} {sm.label}</span>
                 </div>
                 <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color:G.text, textDecoration:'none', fontSize:13, fontWeight:600, lineHeight:1.5, display:'block', marginBottom:6 }}>
@@ -444,13 +444,13 @@ function NewsPanel({ tickers }) {
       )}
       {rest.length > 4 && (
         <Card style={{ padding:14 }}>
-          <div style={{ color:G.muted, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Mais Notícias</div>
+          <div style={{ color:G.muted, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Mais NotÃ­cias</div>
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
             {rest.slice(4, 10).map((item, i) => {
               const sm = sentimentMeta[item.sentiment];
               return (
                 <div key={i} style={{ display:'flex', gap:10, padding:'9px 0', borderBottom: i < rest.slice(4,10).length-1 ? `1px solid ${G.faint}` : 'none', alignItems:'flex-start' }}>
-                  <span style={{ color:G.muted, fontSize:11, minWidth:28, flexShrink:0 }}>{item.datetime ? relTime(item.datetime).replace(' atrás','') : ''}</span>
+                  <span style={{ color:G.muted, fontSize:11, minWidth:28, flexShrink:0 }}>{item.datetime ? relTime(item.datetime).replace(' atrÃ¡s','') : ''}</span>
                   {item.ticker && <Pill color={G.accent}>{item.ticker}</Pill>}
                   <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color:G.text, fontSize:12, lineHeight:1.5, textDecoration:'none', flex:1 }}>{item.headline}</a>
                   <span style={{ fontSize:11, fontWeight:700, color:sm.color, flexShrink:0 }}>{sm.icon}</span>
@@ -495,19 +495,19 @@ function InsidersPanel({ tickers }) {
       </div>
       {loading && <div style={{ color:G.muted, textAlign:'center', padding:40 }}><Spinner /></div>}
       {!loading && !insiders.length && (
-        <div style={{ color:G.muted, textAlign:'center', padding:40 }}>Sem transações relevantes para {selected}.</div>
+        <div style={{ color:G.muted, textAlign:'center', padding:40 }}>Sem transaÃ§Ãµes relevantes para {selected}.</div>
       )}
       {!loading && insiders.length > 0 && (
         <>
           <Card style={{ padding:16, marginBottom:14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:10, flexWrap:'wrap', gap:10 }}>
-              <div><div style={{ fontSize:11, color:G.muted }}>Volume Compras</div><div style={{ fontSize:18, fontWeight:800, color:G.green }}>${fmtK(totalBuyVal)}</div><div style={{ fontSize:12, color:G.muted }}>{buys.length} transações</div></div>
+              <div><div style={{ fontSize:11, color:G.muted }}>Volume Compras</div><div style={{ fontSize:18, fontWeight:800, color:G.green }}>${fmtK(totalBuyVal)}</div><div style={{ fontSize:12, color:G.muted }}>{buys.length} transaÃ§Ãµes</div></div>
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:11, color:G.muted, marginBottom:3 }}>Buy/Sell Ratio</div>
                 <div style={{ fontSize:26, fontWeight:900, color: buyRatio >= 60 ? G.green : buyRatio <= 40 ? G.red : G.yellow }}>{buyRatio}%</div>
                 <div style={{ fontSize:11, color:G.muted }}>compras</div>
               </div>
-              <div style={{ textAlign:'right' }}><div style={{ fontSize:11, color:G.muted }}>Volume Vendas</div><div style={{ fontSize:18, fontWeight:800, color:G.red }}>${fmtK(totalSellVal)}</div><div style={{ fontSize:12, color:G.muted }}>{sells.length} transações</div></div>
+              <div style={{ textAlign:'right' }}><div style={{ fontSize:11, color:G.muted }}>Volume Vendas</div><div style={{ fontSize:18, fontWeight:800, color:G.red }}>${fmtK(totalSellVal)}</div><div style={{ fontSize:12, color:G.muted }}>{sells.length} transaÃ§Ãµes</div></div>
             </div>
             <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden' }}>
               <div style={{ width:`${buyRatio}%`, background:G.green, transition:'width 0.5s' }}/>
@@ -515,7 +515,7 @@ function InsidersPanel({ tickers }) {
             </div>
             {buyRatio === 0 && insiders.length > 0 && (
               <div style={{ color:G.yellow, fontSize:11, marginTop:8, padding:'6px 10px', background:G.yellow+'0d', borderRadius:7, border:`1px solid ${G.yellow}22` }}>
-                ⚠ Padrão 10b5-1 programado — não necessariamente bearish
+                â  PadrÃ£o 10b5-1 programado â nÃ£o necessariamente bearish
               </div>
             )}
           </Card>
@@ -536,7 +536,7 @@ function InsidersPanel({ tickers }) {
                         <span style={{ color, fontSize:13, fontWeight:700 }}>{(t.type==='buy'||t.type==='BUY') ? '+' : '-'}${fmtK(t.value)}</span>
                       </div>
                       <div style={{ color:G.muted, fontSize:11, marginTop:3 }}>
-                        {t.shares?.toLocaleString()} acções{t.price > 0 && ` · $${t.price.toFixed(2)}`}{t.date && ` · ${t.date}`}
+                        {t.shares?.toLocaleString()} acÃ§Ãµes{t.price > 0 && ` Â· $${t.price.toFixed(2)}`}{t.date && ` Â· ${t.date}`}
                       </div>
                     </div>
                   );
@@ -579,13 +579,13 @@ function GrowthChart({ portfolio }) {
   const xPos = i => PL + (i / years) * cW;
   const yPos = v => PT + cH - Math.max(0, Math.min(1, v/maxVal)) * cH;
   const pathD = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xPos(i).toFixed(1)} ${yPos(v).toFixed(1)}`).join(' ');
-  const fmtE = v => v >= 1e6 ? '€'+(v/1e6).toFixed(1)+'M' : v >= 1e3 ? '€'+(v/1e3).toFixed(0)+'K' : '€'+v.toFixed(0);
+  const fmtE = v => v >= 1e6 ? 'â¬'+(v/1e6).toFixed(1)+'M' : v >= 1e3 ? 'â¬'+(v/1e3).toFixed(0)+'K' : 'â¬'+v.toFixed(0);
   const xTicks = years <= 10 ? [0,2,4,6,8,10].filter(x=>x<=years) : years <= 15 ? [0,3,6,9,12,15].filter(x=>x<=years) : [0,5,10,15,20,25,30].filter(x=>x<=years);
 
   return (
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-        <div style={{ color:G.text, fontSize:14, fontWeight:700 }}>Projecção de Crescimento (Portfolio)</div>
+        <div style={{ color:G.text, fontSize:14, fontWeight:700 }}>ProjecÃ§Ã£o de Crescimento (Portfolio)</div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
           {[5,10,15,20,30].map(y => (
             <button key={y} onClick={() => setYears(y)} style={{ padding:'3px 10px', borderRadius:16, border:`1px solid ${years===y ? G.accent : G.border}`, background: years===y ? G.accentDim : 'transparent', color: years===y ? G.accent : G.muted, cursor:'pointer', fontSize:12, fontWeight:600 }}>{y}a</button>
@@ -610,7 +610,7 @@ function GrowthChart({ portfolio }) {
         <input type="number" placeholder="ex: 500" value={monthly} onChange={e => setMonthly(e.target.value)}
           style={{ background:G.faint, border:`1px solid ${G.border}`, borderRadius:8, padding:'5px 10px', color:G.text, fontSize:13, width:100, outline:'none' }}/>
         <button onClick={() => setExtraMonthly(Number(monthly)||0)} style={{ background:G.accentDim, border:`1px solid ${G.accent}44`, color:G.accent, borderRadius:8, padding:'5px 14px', cursor:'pointer', fontSize:13, fontWeight:600 }}>Aplicar</button>
-        {extraMonthly > 0 && <span style={{ color:G.green, fontSize:13 }}>+€{extraMonthly}/mês incluído</span>}
+        {extraMonthly > 0 && <span style={{ color:G.green, fontSize:13 }}>+â¬{extraMonthly}/mÃªs incluÃ­do</span>}
       </div>
       <div style={{ display:'flex', gap:20, marginTop:12 }}>
         {[['Bear', bearCAGR, G.red], ['Base', baseCAGR, G.accent], ['Bull', bullCAGR, G.green]].map(([label, cagr, color]) => (
@@ -633,7 +633,7 @@ function OverviewPanel({ portfolio, ratings }) {
   const sectors = Object.entries(sectorMap).sort((a,b) => b[1]-a[1]);
 
   const hhi = portfolio.reduce((s, p) => s + Math.pow((p.value/totalValue)*100, 2), 0);
-  const hhiLabel = hhi > 2500 ? 'Alta Concentração' : hhi > 1500 ? 'Moderada' : 'Diversificado';
+  const hhiLabel = hhi > 2500 ? 'Alta ConcentraÃ§Ã£o' : hhi > 1500 ? 'Moderada' : 'Diversificado';
   const hhiColor = hhi > 2500 ? G.red : hhi > 1500 ? G.yellow : G.green;
 
   const ratingCounts = { STRONG_BUY:0, BUY:0, HOLD:0, SELL:0, STRONG_SELL:0 };
@@ -642,10 +642,10 @@ function OverviewPanel({ portfolio, ratings }) {
 
   const alerts = [];
   const top = portfolio[0];
-  if (top && top.value/totalValue > 0.35) alerts.push(`${top.ticker} representa ${((top.value/totalValue)*100).toFixed(0)}% do portfolio — peso elevado.`);
+  if (top && top.value/totalValue > 0.35) alerts.push(`${top.ticker} representa ${((top.value/totalValue)*100).toFixed(0)}% do portfolio â peso elevado.`);
   const tech = (sectorMap['Technology']||0) + (sectorMap['Semiconductor']||0);
-  if (tech/totalValue > 0.6) alerts.push(`Exposição a Tech/Semis: ${((tech/totalValue)*100).toFixed(0)}% — considerar diversificação.`);
-  portfolio.filter(p => p.pnlPct < -15).forEach(p => alerts.push(`${p.ticker} com P&L ${fmtPct(p.pnlPct)} — avaliar saída.`));
+  if (tech/totalValue > 0.6) alerts.push(`ExposiÃ§Ã£o a Tech/Semis: ${((tech/totalValue)*100).toFixed(0)}% â considerar diversificaÃ§Ã£o.`);
+  portfolio.filter(p => p.pnlPct < -15).forEach(p => alerts.push(`${p.ticker} com P&L ${fmtPct(p.pnlPct)} â avaliar saÃ­da.`));
 
   const sectorColors = [G.accent, G.cyan, G.purple, G.green, G.yellow, G.red, '#f97316', G.muted];
   const top5 = [...portfolio].sort((a,b) => b.value - a.value).slice(0, 5);
@@ -658,8 +658,8 @@ function OverviewPanel({ portfolio, ratings }) {
         {[
           { label:'Valor Total', value:fmt(totalValue), color:G.text },
           { label:'P&L Total',   value:fmt(totalPnL),   color:totalPnL>=0?G.green:G.red },
-          { label:'Posições',    value:portfolio.length, color:G.text },
-          { label:'HHI',         value:`${hhi.toFixed(0)} · ${hhiLabel}`, color:hhiColor },
+          { label:'PosiÃ§Ãµes',    value:portfolio.length, color:G.text },
+          { label:'HHI',         value:`${hhi.toFixed(0)} Â· ${hhiLabel}`, color:hhiColor },
         ].map(({ label, value, color }) => (
           <Card key={label} style={{ padding:16 }}>
             <div style={{ color:G.muted, fontSize:12, marginBottom:4 }}>{label}</div>
@@ -669,12 +669,12 @@ function OverviewPanel({ portfolio, ratings }) {
       </div>
       {alerts.length > 0 && (
         <Card style={{ padding:16, borderColor:G.yellow+'44' }}>
-          <div style={{ color:G.yellow, fontSize:13, fontWeight:700, marginBottom:10 }}>⚠ Alertas</div>
+          <div style={{ color:G.yellow, fontSize:13, fontWeight:700, marginBottom:10 }}>â  Alertas</div>
           {alerts.map((a,i) => <div key={i} style={{ color:G.muted, fontSize:13, padding:'5px 0', borderTop:i>0?`1px solid ${G.faint}`:'none' }}>{a}</div>)}
         </Card>
       )}
       <Card>
-        <div style={{ color:G.text, fontSize:14, fontWeight:700, marginBottom:16 }}>Top 5 Posições</div>
+        <div style={{ color:G.text, fontSize:14, fontWeight:700, marginBottom:16 }}>Top 5 PosiÃ§Ãµes</div>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {top5.map((p, i) => {
             const pct = (p.value/totalValue)*100;
@@ -685,7 +685,7 @@ function OverviewPanel({ portfolio, ratings }) {
                   <span style={{ fontWeight:700 }}>{p.ticker}</span>
                   <div style={{ display:'flex', gap:12 }}>
                     <span style={{ color:p.pnlPct>=0?G.green:G.red, fontSize:12 }}>{fmtPct(p.pnlPct)}</span>
-                    <span style={{ color:G.muted, fontSize:12 }}>{fmt(p.value)} · {pct.toFixed(1)}%</span>
+                    <span style={{ color:G.muted, fontSize:12 }}>{fmt(p.value)} Â· {pct.toFixed(1)}%</span>
                   </div>
                 </div>
                 <div style={{ height:5, background:G.faint, borderRadius:3 }}>
@@ -696,12 +696,12 @@ function OverviewPanel({ portfolio, ratings }) {
           })}
         </div>
         <div style={{ borderTop:`1px solid ${G.faint}`, marginTop:12, paddingTop:9, color:G.muted, fontSize:12 }}>
-          {portfolio.length - 5} posições restantes
+          {portfolio.length - 5} posiÃ§Ãµes restantes
         </div>
       </Card>
       <Card><GrowthChart portfolio={portfolio}/></Card>
       <Card>
-        <div style={{ color:G.text, fontSize:14, fontWeight:700, marginBottom:16 }}>Distribuição Setorial</div>
+        <div style={{ color:G.text, fontSize:14, fontWeight:700, marginBottom:16 }}>DistribuiÃ§Ã£o Setorial</div>
         {sectors.map(([name, val], i) => {
           const pct = (val/totalValue)*100;
           return (
@@ -718,7 +718,7 @@ function OverviewPanel({ portfolio, ratings }) {
         })}
       </Card>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-        {[{ label:'🏆 Top Performers', data:winners, color:G.green }, { label:'📉 Piores', data:topLosers, color:G.red }].map(({ label, data, color }) => (
+        {[{ label:'ð Top Performers', data:winners, color:G.green }, { label:'ð Piores', data:topLosers, color:G.red }].map(({ label, data, color }) => (
           <Card key={label} style={{ padding:16 }}>
             <div style={{ color:G.text, fontSize:13, fontWeight:700, marginBottom:12 }}>{label}</div>
             {data.map(p => (
@@ -779,12 +779,12 @@ function DiscoverPanel({ portfolio }) {
   return (
     <div>
       <div style={{ marginBottom:18 }}>
-        <div style={{ color:G.text, fontSize:16, fontWeight:700, marginBottom:6 }}>Descobertas AI ✦</div>
+        <div style={{ color:G.text, fontSize:16, fontWeight:700, marginBottom:6 }}>Descobertas AI â¦</div>
         <div style={{ color:G.muted, fontSize:13, lineHeight:1.65, marginBottom:12 }}>
-          Apenas <span style={{ color:G.green2, fontWeight:600 }}>Strong Buy</span> — upside calculado via price target médio dos analistas. Probabilidades baseadas em consenso, P/E vs sector e insider activity.
+          Apenas <span style={{ color:G.green2, fontWeight:600 }}>Strong Buy</span> â upside calculado via price target mÃ©dio dos analistas. Probabilidades baseadas em consenso, P/E vs sector e insider activity.
         </div>
         <div style={{ padding:'8px 12px', background:G.accentDim, border:`1px solid ${G.accent}33`, borderRadius:8, fontSize:12, color:G.accent, marginBottom:14 }}>
-          ℹ Apenas consenso Strong Buy · upside via target médio analistas · sem projecções especulativas
+          â¹ Apenas consenso Strong Buy Â· upside via target mÃ©dio analistas Â· sem projecÃ§Ãµes especulativas
         </div>
         {!done && !loading && <button onClick={handleDiscover} style={{ background:G.gradAccent, color:'#fff', border:'none', borderRadius:10, padding:'11px 26px', cursor:'pointer', fontSize:14, fontWeight:700, boxShadow:`0 4px 18px ${G.accent}44` }}>Descobrir Stocks IA</button>}
       </div>
@@ -793,7 +793,7 @@ function DiscoverPanel({ portfolio }) {
       {done && suggestions.length > 0 && (
         <>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-            <div style={{ color:G.muted, fontSize:13 }}>{suggestions.length} sugestões</div>
+            <div style={{ color:G.muted, fontSize:13 }}>{suggestions.length} sugestÃµes</div>
             <button onClick={() => { setDone(false); setSuggestions([]); }} style={{ background:'none', border:`1px solid ${G.border}`, color:G.muted, borderRadius:8, padding:'4px 12px', cursor:'pointer', fontSize:12 }}>Regenerar</button>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -829,7 +829,7 @@ function DiscoverPanel({ portfolio }) {
                     </div>
                     <div style={{ color:G.muted, fontSize:13, lineHeight:1.65, marginBottom:12 }}>{s.thesis}</div>
                     <div style={{ padding:12, background:G.card2, borderRadius:9, border:`1px solid ${G.border}` }}>
-                      <div style={{ color:G.muted, fontSize:10, marginBottom:8, textTransform:'uppercase', letterSpacing:'.06em' }}>Análise de Probabilidade</div>
+                      <div style={{ color:G.muted, fontSize:10, marginBottom:8, textTransform:'uppercase', letterSpacing:'.06em' }}>AnÃ¡lise de Probabilidade</div>
                       <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                         {[['Bull', bullProb, G.green], ['Neutral', neutralProb, G.yellow], ['Bear', bearProb, G.red]].map(([label, pct, color]) => (
                           <div key={label}>
@@ -848,7 +848,7 @@ function DiscoverPanel({ portfolio }) {
                         <div style={{ width:`${neutralProb}%`, background:G.yellow }}/>
                         <div style={{ width:`${bearProb}%`, background:G.red }}/>
                       </div>
-                      <div style={{ color:G.muted, fontSize:10, marginTop:6 }}>Baseado em consenso analistas · P/E vs sector · insider activity · momentum 90d</div>
+                      <div style={{ color:G.muted, fontSize:10, marginTop:6 }}>Baseado em consenso analistas Â· P/E vs sector Â· insider activity Â· momentum 90d</div>
                     </div>
                   </div>
                 </Card>
@@ -857,21 +857,21 @@ function DiscoverPanel({ portfolio }) {
           </div>
         </>
       )}
-      {done && !suggestions.length && !error && <div style={{ color:G.muted, padding:40, textAlign:'center' }}>Sem sugestões. Tenta regenerar.</div>}
+      {done && !suggestions.length && !error && <div style={{ color:G.muted, padding:40, textAlign:'center' }}>Sem sugestÃµes. Tenta regenerar.</div>}
     </div>
   );
 }
 
-// ─── MACRO + AI ALERTS ────────────────────────────────────────────────────────
+// âââ MACRO + AI ALERTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const MACRO_INDICES = [
-  { key:'fear',    label:'Fear/Greed', color:'#f5a623', desc:'Sentimento geral do mercado. Valores <25 = pânico extremo (oportunidade de compra). Valores >75 = ganância extrema (risco elevado).' },
-  { key:'vix',     label:'VIX',        color:'#f04f5a', desc:'Índice de volatilidade do S&P500. >30 = stress elevado. <15 = mercado complacente. Picos do VIX coincidem com mínimos do mercado.' },
-  { key:'dxy',     label:'DXY',        color:'#4a9eff', desc:'Força do dólar americano. DXY alto pressiona commodities e mercados emergentes. DXY baixo favorece ouro, crypto e acções internacionais.' },
-  { key:'wti',     label:'WTI Oil',    color:'#f5a623', desc:'Petróleo bruto WTI. Proxy de crescimento global e inflação. >$90 pressiona margens das empresas. Estreito de Ormuz = risco geopolítico chave.' },
-  { key:'eurusd',  label:'EUR/USD',    color:'#00d4c8', desc:'Par euro/dólar. Reflecte divergência económica EUA vs Europa. Impacta receitas de multinacionais com exposição europeia.' },
-  { key:'yield10', label:'10Y Yield',  color:'#b06ef7', desc:'Yield do tesouro americano a 10 anos. Taxa de desconto para valorização de acções. >4.5% comprime múltiplos de crescimento (tech especialmente).' },
-  { key:'gold',    label:'Gold',       color:'#f5a623', desc:'Ouro como activo refúgio. Sobe em períodos de stress geopolítico, inflação e dólar fraco. Correlação negativa com yields reais.' },
-  { key:'sp500',   label:'S&P 500',    color:'#22d47a', desc:'Benchmark do mercado americano. Tendência de longo prazo define o contexto macro. 200MA = linha divisória bull/bear market.' },
+  { key:'fear',    label:'Fear/Greed', color:'#f5a623', desc:'Sentimento geral do mercado. Valores <25 = pÃ¢nico extremo (oportunidade de compra). Valores >75 = ganÃ¢ncia extrema (risco elevado).' },
+  { key:'vix',     label:'VIX',        color:'#f04f5a', desc:'Ãndice de volatilidade do S&P500. >30 = stress elevado. <15 = mercado complacente. Picos do VIX coincidem com mÃ­nimos do mercado.' },
+  { key:'dxy',     label:'DXY',        color:'#4a9eff', desc:'ForÃ§a do dÃ³lar americano. DXY alto pressiona commodities e mercados emergentes. DXY baixo favorece ouro, crypto e acÃ§Ãµes internacionais.' },
+  { key:'wti',     label:'WTI Oil',    color:'#f5a623', desc:'PetrÃ³leo bruto WTI. Proxy de crescimento global e inflaÃ§Ã£o. >$90 pressiona margens das empresas. Estreito de Ormuz = risco geopolÃ­tico chave.' },
+  { key:'eurusd',  label:'EUR/USD',    color:'#00d4c8', desc:'Par euro/dÃ³lar. Reflecte divergÃªncia econÃ³mica EUA vs Europa. Impacta receitas de multinacionais com exposiÃ§Ã£o europeia.' },
+  { key:'yield10', label:'10Y Yield',  color:'#b06ef7', desc:'Yield do tesouro americano a 10 anos. Taxa de desconto para valorizaÃ§Ã£o de acÃ§Ãµes. >4.5% comprime mÃºltiplos de crescimento (tech especialmente).' },
+  { key:'gold',    label:'Gold',       color:'#f5a623', desc:'Ouro como activo refÃºgio. Sobe em perÃ­odos de stress geopolÃ­tico, inflaÃ§Ã£o e dÃ³lar fraco. CorrelaÃ§Ã£o negativa com yields reais.' },
+  { key:'sp500',   label:'S&P 500',    color:'#22d47a', desc:'Benchmark do mercado americano. TendÃªncia de longo prazo define o contexto macro. 200MA = linha divisÃ³ria bull/bear market.' },
 ];
 
 function useLivePrices(tickers) {
@@ -896,25 +896,73 @@ function useLivePrices(tickers) {
 }
 
 function MacroPanel() {
+  const [prices, setPrices] = useState({});
   const [expanded, setExpanded] = useState(null);
-  const G = { bg:'#08080f', card:'#0e0e1a', accent:'#7c6af7', soft:'#8888aa', border:'#1e1e2e', text:'#e8e8f0' };
+  const INDICES = [
+    { key:'SPY',    label:'S&P 500',     color:'#7c6af7', fmt: v => v.toFixed(0) },
+    { key:'QQQ',    label:'NASDAQ',      color:'#7c6af7', fmt: v => v.toFixed(0) },
+    { key:'VIX',    label:'VIX',         color:'#f04f5a', fmt: v => v.toFixed(1) },
+    { key:'GC=F',   label:'Ouro',        color:'#f5a623', fmt: v => v.toFixed(0) },
+    { key:'CL=F',   label:'WTI Oil',     color:'#888780', fmt: v => v.toFixed(1) },
+    { key:'DX-Y.NYB', label:'DXY',       color:'#1D9E75', fmt: v => v.toFixed(1) },
+    { key:'BTC-USD',  label:'BTC',       color:'#f5a623', fmt: v => '$' + Math.round(v).toLocaleString() },
+    { key:'TNX',    label:'T-Note 10Y',  color:'#f04f5a', fmt: v => v.toFixed(2) + '%' },
+  ];
+  const IMPACT = {
+    'SPY':      'Barómetro geral do mercado. Queda >2% num dia sinaliza risk-off — reduz exposição a high-beta.',
+    'QQQ':      'Proxy do sector tech. Divergência negativa vs SPY indica rotação fora de growth.',
+    'VIX':      'Acima de 25 = regime de alta volatilidade. Abaixo de 15 = complacência. Usa opções se VIX < 15 para hedge barato.',
+    'GC=F':     'Ouro em máximos = incerteza geopolítica elevada. Portfólio sem 3-5% em ouro está subexposto neste regime.',
+    'CL=F':     'Acima de $90 pressiona margens e inflação. Abaixo de $70 alivia input costs para industriais e transporte.',
+    'DX-Y.NYB': 'USD forte comprime receitas internacionais de AAPL, MSFT, GOOGL. USD fraco é tailwind para commodities.',
+    'BTC-USD':  'Correlação com Nasdaq ~0.7. BTC acima de $60k com ETF flows positivos = risk-on indicator.',
+    'TNX':      'Yield 10Y acima de 4.5% comprime P/E de growth stocks. Cada +50bps = ~-8% no fair value de tech com P/E 30x.',
+  };
+  useEffect(() => {
+    const symbols = INDICES.map(i => i.key);
+    let cancelled = false;
+    (async () => {
+      const result = {};
+      for (const sym of symbols) {
+        try {
+          const r = await fetch('/api/quote?symbol=' + encodeURIComponent(sym));
+          if (r.ok) { const d = await r.json(); result[sym] = d; }
+        } catch(e) {}
+        if (cancelled) return;
+      }
+      if (!cancelled) setPrices(result);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
-    <div style={{ background:G.card, borderRadius:12, padding:16, border:'1px solid '+G.border }}>
-      <div style={{ fontWeight:700, fontSize:14, color:G.text, marginBottom:12 }}>Macro Global</div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
-        {MACRO_INDICES.map(idx => (
-          <div key={idx.key}
-            onClick={() => setExpanded(expanded===idx.key ? null : idx.key)}
-            style={{ background:'#13131f', borderRadius:8, padding:10, cursor:'pointer',
-              border: expanded===idx.key ? '1px solid '+idx.color : '1px solid #1e1e2e',
-              borderLeft:'3px solid '+idx.color }}>
-            <div style={{ fontWeight:700, fontSize:12, color:idx.color, marginBottom:5 }}>{idx.label}</div>
-            <div style={{ color:'#8888aa', fontSize:12, lineHeight:1.7 }}>
-              {expanded===idx.key ? idx.desc : idx.desc.substring(0,45)+'...'}
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Macro Global</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        {INDICES.map(idx => {
+          const d = prices[idx.key];
+          const price = d ? idx.fmt(d.c || d.price || 0) : '...';
+          const chg = d ? ((d.dp || 0)).toFixed(2) : null;
+          const isUp = d && (d.dp || 0) >= 0;
+          const isExpanded = expanded === idx.key;
+          return (
+            <div key={idx.key}
+              onClick={() => setExpanded(isExpanded ? null : idx.key)}
+              style={{ background: '#0e0e1a', border: isExpanded ? '1px solid ' + idx.color : '1px solid #1e1e2e', borderRadius: 8, padding: '8px 10px', cursor: 'pointer', transition: 'border-color 0.2s' }}>
+              <div style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{idx.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: idx.color }}>{price}</div>
+              {chg !== null && (
+                <div style={{ fontSize: 10, color: isUp ? '#1D9E75' : '#f04f5a' }}>{isUp ? '+' : ''}{chg}%</div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+      {expanded && IMPACT[expanded] && (
+        <div style={{ marginTop: 8, padding: '8px 12px', background: '#0e0e1a', border: '1px solid #1e1e2e', borderRadius: 8, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
+          {IMPACT[expanded]}
+        </div>
+      )}
     </div>
   );
 }
@@ -923,42 +971,56 @@ function AIAlerts({ portfolio, ratings }) {
   const [alerts, setAlerts] = useState([]);
   useEffect(() => {
     if (!portfolio || portfolio.length === 0) return;
+    const totalValue = portfolio.reduce((s, x) => s + (x.shares * (x.pp || 0)), 0);
     const result = [];
     portfolio.forEach(s => {
       const r = ratings[s.t] || {};
-      const pnlPct = s.pp > 0 ? ((s.v - s.pp) / s.pp * 100) : 0;
-      const weight = s.w || 0;
-      if (weight > 30) {
-        result.push({ type:'REDUZIR', ticker:s.t, reason:`Peso excessivo (${weight.toFixed(1)}%). Concentração >30% aumenta risco não sistémico.`, color:'#f04f5a' });
-      } else if (pnlPct > 100 || pnlPct < -15) {
-        const msg = pnlPct > 100
-          ? `Ganho de ${pnlPct.toFixed(0)}%. Considerar realizar parcialmente ou ajustar stop.`
-          : `Perda de ${Math.abs(pnlPct).toFixed(0)}%. Rever tese de investimento.`;
-        result.push({ type:'VIGIAR', ticker:s.t, reason:msg, color:'#f5a623' });
-      } else if ((r.rating === 'BUY' || r.rating === 'STRONG_BUY') && pnlPct < 40 && weight < 12) {
-        result.push({ type:'ACUMULAR', ticker:s.t, reason:`Rating ${r.rating} com espaço de valorização. Peso (${weight.toFixed(1)}%) abaixo do óptimo.`, color:'#22d47a' });
+      const rating = r.rating || '';
+      const currentVal = s.shares * (s.pp || 0);
+      const weight = totalValue > 0 ? (currentVal / totalValue) * 100 : 0;
+      const pnlPct = s.pp > 0 ? ((s.pp - s.avgCost) / s.avgCost) * 100 : 0;
+
+      // REDUZIR: peso excessivo (>25%) ou rating SELL/STRONG_SELL
+      if (weight > 25) {
+        result.push({ type: 'REDUZIR', ticker: s.t, msg: 'Concentração de ' + weight.toFixed(1) + '% (limite recomendado: 25%). Reduz para rebalancear risco de portfólio.' });
+      } else if (rating === 'SELL' || rating === 'STRONG_SELL') {
+        result.push({ type: 'REDUZIR', ticker: s.t, msg: 'Rating AI: ' + rating + '. ' + (r.text ? r.text.split('.')[0] + '.' : 'Considera reduzir posição.') });
+      }
+      // VIGIAR: drawdown >15% ou rating SELL sem estar em REDUZIR, ou pnl muito positivo com peso alto
+      else if (pnlPct < -15) {
+        result.push({ type: 'VIGIAR', ticker: s.t, msg: 'Drawdown de ' + Math.abs(pnlPct).toFixed(1) + '% desde entrada. ' + (r.text ? r.text.split('.')[0] + '.' : 'Verifica suporte e tese de investimento.') });
+      } else if (weight > 15 && pnlPct > 80) {
+        result.push({ type: 'VIGIAR', ticker: s.t, msg: 'Posição com +' + pnlPct.toFixed(0) + '% de ganho e peso ' + weight.toFixed(1) + '%. Considera realizar lucros parciais.' });
+      }
+      // ACUMULAR: rating BUY/STRONG_BUY, peso baixo (<12%), e não em perda severa
+      else if ((rating === 'BUY' || rating === 'STRONG_BUY') && weight < 12 && pnlPct > -10) {
+        result.push({ type: 'ACUMULAR', ticker: s.t, msg: 'Rating AI: ' + rating + '. Peso actual ' + weight.toFixed(1) + '% — espaço para aumentar até 15%. ' + (r.text ? r.text.split('.')[0] + '.' : '') });
       }
     });
-    setAlerts(result);
+    setAlerts(result.slice(0, 5));
   }, [portfolio, ratings]);
 
   if (alerts.length === 0) return null;
-  const G = { card:'#0e0e1a', border:'#1e1e2e', text:'#e8e8f0' };
+  const colors = { REDUZIR: '#f04f5a', VIGIAR: '#f5a623', ACUMULAR: '#1D9E75' };
+  const bg = { REDUZIR: 'rgba(240,79,90,0.08)', VIGIAR: 'rgba(245,166,35,0.08)', ACUMULAR: 'rgba(29,158,117,0.08)' };
   return (
-    <div style={{ background:G.card, borderRadius:12, padding:16, border:'1px solid '+G.border }}>
-      <div style={{ fontWeight:700, fontSize:14, color:G.text, marginBottom:12 }}>Alertas AI</div>
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {alerts.map((a,i) => (
-          <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, background:'#13131f', borderRadius:8, padding:10, borderLeft:'3px solid '+a.color }}>
-            <span style={{ fontWeight:700, fontSize:11, color:a.color, minWidth:70, paddingTop:1 }}>{a.type}</span>
-            <span style={{ fontWeight:700, fontSize:12, color:'#e8e8f0', minWidth:60 }}>{a.ticker}</span>
-            <span style={{ fontSize:12, color:'#8888aa', lineHeight:1.6 }}>{a.reason}</span>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>AI Alerts</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {alerts.map((a, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: bg[a.type], border: '1px solid ' + colors[a.type] + '33' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: colors[a.type], color: '#fff', whiteSpace: 'nowrap', marginTop: 1 }}>{a.type}</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', marginBottom: 2 }}>{a.ticker}</div>
+              <div style={{ fontSize: 12, color: '#999', lineHeight: 1.4 }}>{a.msg}</div>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
 }
+
 
 function PortfolioTable({ portfolio, ratings, onAnalyse, filterRating }) {
   const rMap = { 'Strong Buy':'STRONG_BUY', 'Buy':'BUY', 'Hold':'HOLD', 'Sell':'SELL', 'Strong Sell':'STRONG_SELL' };
@@ -981,7 +1043,7 @@ function PortfolioTable({ portfolio, ratings, onAnalyse, filterRating }) {
                 <div style={{ fontSize:11, marginTop:2 }}>
                   <span style={{ color:'#e8e8f0', fontWeight:600 }}>${livePrices[stock.ticker].price?.toFixed(2)}</span>
                   <span style={{ color: livePrices[stock.ticker].changePct >= 0 ? '#22d47a' : '#f04f5a', marginLeft:4 }}>
-                    {livePrices[stock.ticker].changePct >= 0 ? '▲' : '▼'}{Math.abs(livePrices[stock.ticker].changePct || 0).toFixed(2)}%
+                    {livePrices[stock.ticker].changePct >= 0 ? 'â²' : 'â¼'}{Math.abs(livePrices[stock.ticker].changePct || 0).toFixed(2)}%
                   </span>
                 </div>
               )}
@@ -1003,11 +1065,11 @@ function PortfolioTable({ portfolio, ratings, onAnalyse, filterRating }) {
 }
 
 const CRYPTO_COINS = [
-  { symbol:'BTC', name:'Bitcoin',        color:'#f5a623', icon:'₿',  desc:'Store of value · Digital gold',     mcap:'$1,84T', vol:'$42B',  extra:'Dominância 54%' },
-  { symbol:'ETH', name:'Ethereum',       color:'#7c6af7', icon:'Ξ',  desc:'Smart contracts · DeFi · Staking',  mcap:'$209B',  vol:'$18B',  extra:'ETH/BTC 0,0186' },
-  { symbol:'RUNE',name:'THORChain',      color:'#00d4c8', icon:'⚡', desc:'DEX cross-chain nativo',            mcap:'$614M',  vol:'$180M', extra:'TVL $318M' },
-  { symbol:'AKT', name:'Akash Network',  color:'#b06ef7', icon:'☁',  desc:'Cloud compute descentralizado',     mcap:'$276M',  vol:'$42M',  extra:'1 240 GPU providers' },
-  { symbol:'XRP', name:'Ripple',         color:'#00d4c8', icon:'✕',  desc:'Pagamentos institucionais · CBDC',  mcap:'$124B',  vol:'$4,2B', extra:'SEC resolved ✓' },
+  { symbol:'BTC', name:'Bitcoin',        color:'#f5a623', icon:'â¿',  desc:'Store of value Â· Digital gold',     mcap:'$1,84T', vol:'$42B',  extra:'DominÃ¢ncia 54%' },
+  { symbol:'ETH', name:'Ethereum',       color:'#7c6af7', icon:'Î',  desc:'Smart contracts Â· DeFi Â· Staking',  mcap:'$209B',  vol:'$18B',  extra:'ETH/BTC 0,0186' },
+  { symbol:'RUNE',name:'THORChain',      color:'#00d4c8', icon:'â¡', desc:'DEX cross-chain nativo',            mcap:'$614M',  vol:'$180M', extra:'TVL $318M' },
+  { symbol:'AKT', name:'Akash Network',  color:'#b06ef7', icon:'â',  desc:'Cloud compute descentralizado',     mcap:'$276M',  vol:'$42M',  extra:'1 240 GPU providers' },
+  { symbol:'XRP', name:'Ripple',         color:'#00d4c8', icon:'â',  desc:'Pagamentos institucionais Â· CBDC',  mcap:'$124B',  vol:'$4,2B', extra:'SEC resolved â' },
 ];
 
 const CRYPTO_PRICES  = { BTC:93420, ETH:1742, RUNE:1.84, AKT:1.12, XRP:2.14 };
@@ -1015,11 +1077,11 @@ const CRYPTO_CHANGES = { BTC:2.4, ETH:-1.2, RUNE:8.7, AKT:14.2, XRP:3.8 };
 const CRYPTO_SENTIMENT = { BTC:{bull:68,neutral:22,bear:10}, ETH:{bull:52,neutral:31,bear:17}, RUNE:{bull:44,neutral:35,bear:21}, AKT:{bull:55,neutral:28,bear:17}, XRP:{bull:58,neutral:29,bear:13} };
 const CRYPTO_CAGR = { BTC:{bear:0.08,base:0.20,bull:0.40}, ETH:{bear:0.10,base:0.25,bull:0.55}, RUNE:{bear:0.12,base:0.38,bull:0.85}, AKT:{bear:0.15,base:0.45,bull:1.20}, XRP:{bear:0.08,base:0.22,bull:0.60} };
 const CRYPTO_THESIS = {
-  BTC: 'Hash rate em ATH — rede mais segura. Halving Abr 2024 com efeito lag 12-18m. ETFs spot com $15B de inflows. Países a adoptar como reserva nacional.',
-  ETH: 'ETH/BTC em mínimos de 4 anos — potencial catch-up. Staking 3,8% APY. EIP-4844 reduziu fees L2 em 90%. ETF staking em discussão na SEC.',
-  RUNE: 'Único DEX com swaps nativos cross-chain sem wrapped tokens. TVL $318M. Volume +40% MoM. Alta volatilidade — beta 3x vs BTC. Histórico de exploits.',
-  AKT: 'AWS descentralizado — GPU compute em mercado $500B. AI workloads a 40% TVL. Small cap $276M — alta volatilidade. Pré-revenue significativo.',
-  XRP: 'SEC lawsuit resolvido 2024. RLUSD stablecoin em expansão. 70+ acordos com bancos centrais. XRPL em testes para CBDCs. ETF aprovação iminente.',
+  BTC: 'Hash rate em ATH â rede mais segura. Halving Abr 2024 com efeito lag 12-18m. ETFs spot com $15B de inflows. PaÃ­ses a adoptar como reserva nacional.',
+  ETH: 'ETH/BTC em mÃ­nimos de 4 anos â potencial catch-up. Staking 3,8% APY. EIP-4844 reduziu fees L2 em 90%. ETF staking em discussÃ£o na SEC.',
+  RUNE: 'Ãnico DEX com swaps nativos cross-chain sem wrapped tokens. TVL $318M. Volume +40% MoM. Alta volatilidade â beta 3x vs BTC. HistÃ³rico de exploits.',
+  AKT: 'AWS descentralizado â GPU compute em mercado $500B. AI workloads a 40% TVL. Small cap $276M â alta volatilidade. PrÃ©-revenue significativo.',
+  XRP: 'SEC lawsuit resolvido 2024. RLUSD stablecoin em expansÃ£o. 70+ acordos com bancos centrais. XRPL em testes para CBDCs. ETF aprovaÃ§Ã£o iminente.',
 };
 
 function CryptoPanel({ onAnalyseCrypto }) {
@@ -1027,7 +1089,7 @@ function CryptoPanel({ onAnalyseCrypto }) {
     <div>
       <div style={{ marginBottom:14 }}>
         <div style={{ fontSize:15, fontWeight:700, marginBottom:4 }}>Crypto Watch</div>
-        <div style={{ color:G.muted, fontSize:13 }}>Preços e métricas de mercado · Clica em Analisar para análise on-chain + sentimento</div>
+        <div style={{ color:G.muted, fontSize:13 }}>PreÃ§os e mÃ©tricas de mercado Â· Clica em Analisar para anÃ¡lise on-chain + sentimento</div>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {CRYPTO_COINS.map(coin => {
@@ -1053,7 +1115,7 @@ function CryptoPanel({ onAnalyseCrypto }) {
                 <div style={{ padding:'5px 8px', background:G.card2, borderRadius:7 }}><div style={{ color:G.muted, fontSize:10 }}>Mkt Cap</div><div style={{ fontSize:12, fontWeight:600 }}>{coin.mcap}</div></div>
                 <div style={{ padding:'5px 8px', background:G.card2, borderRadius:7 }}><div style={{ color:G.muted, fontSize:10 }}>Vol 24h</div><div style={{ fontSize:12, fontWeight:600 }}>{coin.vol}</div></div>
               </div>
-              <div style={{ color:G.muted, fontSize:11, marginBottom:10 }}>{coin.desc} · {coin.extra}</div>
+              <div style={{ color:G.muted, fontSize:11, marginBottom:10 }}>{coin.desc} Â· {coin.extra}</div>
               <button onClick={() => onAnalyseCrypto(coin)} style={{ width:'100%', background:G.accentDim, border:`1px solid ${G.accent}44`, color:G.accent, borderRadius:8, padding:'5px 0', cursor:'pointer', fontSize:12, fontWeight:600 }}>
                 Analisar
               </button>
@@ -1073,14 +1135,14 @@ function CryptoAnalysisModal({ coin, onClose }) {
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', display:'flex', alignItems:'flex-start', justifyContent:'center', zIndex:1000, padding:20, overflowY:'auto' }}>
       <div style={{ background:G.card, border:`1px solid ${G.border}`, borderRadius:16, padding:24, maxWidth:620, width:'100%', position:'relative', margin:'auto' }}>
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', color:G.muted, cursor:'pointer', fontSize:18 }}>✕</button>
+        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', color:G.muted, cursor:'pointer', fontSize:18 }}>â</button>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
           <div style={{ width:32, height:32, borderRadius:'50%', background:coin.color+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:900, color:coin.color }}>{coin.icon}</div>
           <span style={{ fontSize:21, fontWeight:900 }}>{coin.symbol}</span>
           <span style={{ color:G.muted, fontSize:13 }}>{coin.name}</span>
           <Pill color={G.cyan} bg={G.cyan+'15'}>Crypto</Pill>
         </div>
-        <div style={{ color:G.muted, fontSize:12, marginBottom:16 }}>{price >= 1000 ? '$'+price.toLocaleString() : '$'+price.toFixed(2)} · {CRYPTO_CHANGES[coin.symbol]>=0?'+':''}{CRYPTO_CHANGES[coin.symbol]}% 24h</div>
+        <div style={{ color:G.muted, fontSize:12, marginBottom:16 }}>{price >= 1000 ? '$'+price.toLocaleString() : '$'+price.toFixed(2)} Â· {CRYPTO_CHANGES[coin.symbol]>=0?'+':''}{CRYPTO_CHANGES[coin.symbol]}% 24h</div>
         <div style={{ padding:14, background:G.card2, borderRadius:10, border:`1px solid ${G.border}`, marginBottom:12 }}>
           <div style={{ color:G.muted, fontSize:10, marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>Sentimento de Mercado</div>
           <SentimentBar bullish={sentiment.bull} neutral={sentiment.neutral} bearish={sentiment.bear} />
