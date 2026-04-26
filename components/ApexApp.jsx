@@ -2,271 +2,105 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PORTFOLIO_DEFAULT } from '@/lib/portfolio';
 
-const CYCLE = [null, 'Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'];
-const PILL  = { 'Strong Buy': 'sb', 'Buy': 'b', 'Hold': 'h', 'Sell': 's', 'Strong Sell': 'ss' };
-
 const G = {
-  bg: '#f6f4f1', surf: '#fff', surf2: '#f0ece6', bdr: '#e5e0d8', bdr2: '#ccc5b8',
-  txt: '#1a1714', txt2: '#7a6f65', txt3: '#b0a59a',
-  sb: { bg: '#eaf5ee', c: '#276b44', bdr: '#b8dcc6' },
-  b:  { bg: '#eaf0fb', c: '#2352a0', bdr: '#b4caf0' },
-  h:  { bg: '#fef8e6', c: '#7a5f00', bdr: '#eedfa0' },
-  s:  { bg: '#fdf0e6', c: '#9a3e18', bdr: '#ecc49a' },
-  ss: { bg: '#fde6ea', c: '#961c38', bdr: '#eaa8b4' },
-  na: { bg: '#f0ece6', c: '#aaa09a', bdr: '#ddd5ca' },
+  bg: '#FAF7F4', surf: '#FFFFFF', border: '#E8E2DA', text: '#1A1714',
+  muted: '#7A6E66', accent: '#2C5F2E', accentL: '#E8F5E9',
+  sell: '#C62828', sellL: '#FFEBEE', warn: '#E65100', warnL: '#FFF3E0',
+  hold: '#1565C0', holdL: '#E3F2FD', tag: '#6D4C41', tagL: '#EFEBE9'
 };
 
-function pillStyle(r) {
-  const col = G[r ? PILL[r] : 'na'] || G.na;
-  return {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    padding: '4px 10px', borderRadius: 20, fontFamily: 'DM Mono,monospace', fontSize: 9,
-    fontWeight: 500, letterSpacing: .5, cursor: 'pointer', border: `1px solid ${col.bdr}`,
-    background: col.bg, color: col.c, userSelect: 'none', whiteSpace: 'nowrap',
-  };
-}
+const RATING_COLORS = {
+  STRONG_BUY:  { bg: '#1B5E20', text: '#fff', label: 'Strong Buy' },
+  BUY:         { bg: '#2E7D32', text: '#fff', label: 'Buy' },
+  HOLD:        { bg: '#1565C0', text: '#fff', label: 'Hold' },
+  SELL:        { bg: '#C62828', text: '#fff', label: 'Sell' },
+  STRONG_SELL: { bg: '#7B0000', text: '#fff', label: 'Strong Sell' },
+};
 
-function verdictStyle(r) {
-  const col = G[r ? PILL[r] : 'na'] || G.na;
-  return {
-    textAlign: 'center', padding: '18px 20px', borderRadius: 12,
-    border: `1px solid ${col.bdr}`, background: col.bg, marginBottom: 14,
-  };
-}
+const fmt = (n, dec=2) => typeof n === 'number' ? n.toFixed(dec) : '0.00';
+const fmtK = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (abs >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toFixed(0);
+};
 
-function parseSection(text, key, stops) {
-  const lines = text.split('\n');
-  let collecting = false, result = [];
-  const kl = key.toLowerCase();
-  const sl = stops.map(s => s.toLowerCase());
-  for (let line of lines) {
-    const t = line.trim(), tl = t.toLowerCase();
-    if (collecting && sl.some(s => tl.startsWith(s) && tl.includes(':'))) break;
-    if (!collecting) {
-      if (tl.startsWith(kl) && tl.includes(':')) {
-        collecting = true;
-        const rest = t.slice(t.indexOf(':') + 1).trim().replace(/^[-*]\s*/, '');
-        if (rest) result.push(rest);
-      }
-    } else if (t) {
-      result.push(t.replace(/^[-*]\s*/, '').trim());
-    }
-  }
-  return result.filter(Boolean);
-}
-
-function Spinner() {
+function RatingPill({ r }) {
+  if (!r || !RATING_COLORS[r]) return null;
+  const c = RATING_COLORS[r];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '44px', gap: 14 }}>
-      <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${G.bdr}`, borderTopColor: G.txt2, animation: 'spin .7s linear infinite' }} />
-      <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: G.txt3, letterSpacing: 2, textTransform: 'uppercase' }}>A processar</span>
-    </div>
+    <span style={{ background: c.bg, color: c.text, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono,monospace', letterSpacing: '.5px' }}>
+      {c.label}
+    </span>
   );
 }
 
-function Pill({ rating, onClick }) {
-  return (
-    <div onClick={onClick} style={{ ...pillStyle(rating), transition: 'all .12s' }}
-      onMouseEnter={e => { e.currentTarget.style.opacity = '.8'; }}
-      onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
-      {rating || 'N/A'}
-    </div>
-  );
-}
-
-function SpotlightCard({ label, colorKey, stocks, onOpen }) {
-  const col = G[colorKey];
-  return (
-    <div style={{ borderRadius: 12, padding: 16, background: col.bg, border: `1px solid ${col.bdr}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: col.c, flexShrink: 0 }} />
-        <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 500, color: col.c }}>{label}</span>
-      </div>
-      {stocks.length === 0
-        ? <div style={{ fontSize: 11, color: G.txt3, fontStyle: 'italic' }}>Sem posicoes.</div>
-        : <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {stocks.map(x => (
-              <div key={x.t} onClick={() => onOpen(x.t)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,.8)', border: '1px solid rgba(255,255,255,.95)', cursor: 'pointer', transition: 'all .13s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,.1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.8)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                <div>
-                  <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, fontWeight: 500, color: col.c }}>{x.t}</div>
-                  <div style={{ fontSize: 10, color: G.txt3, marginTop: 1 }}>{x.n.split(' ')[0]}</div>
-                </div>
-                <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, fontWeight: 500, color: col.c }}>{x.pnl >= 0 ? '+' : ''}{x.pp.toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-      }
-    </div>
-  );
-}
-
-// Analysis Panel
-function AnalysisPanel({ ticker, port, ratings, onClose, onRatingSet }) {
-  const [loading,   setLoading]  = useState(true);
-  const [result,    setResult]   = useState(null);
-  const [error,     setError]    = useState(null);
-  const [conv,      setConv]     = useState([]);
-  const [fuQ,       setFuQ]      = useState('');
-  const [fuLoading, setFuL]      = useState(false);
-  const [fuItems,   setFuItems]  = useState([]);
-  const stock = port.find(x => x.t === ticker);
-
-  useEffect(() => {
-    if (!stock) return;
-    setLoading(true); setResult(null); setError(null); setConv([]); setFuItems([]);
-    fetch('/api/analyse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stock, history: [] }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (res.error) throw new Error(res.error);
-        setConv(res.conv);
-        setResult(res);
-        if (res.rating) onRatingSet(ticker, res.rating, res.text);
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [ticker]); // eslint-disable-line
-
-  const sendFU = async () => {
-    if (!fuQ.trim() || fuLoading) return;
-    const q = fuQ.trim();
-    setFuQ('');
-    setFuL(true);
-    const newConv = [...conv, { role: 'user', content: q }];
-    setFuItems(prev => [...prev, { q, a: null }]);
+function AnalysisPanel({ stock, onClose, onRatingSet }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState('');
+  async function analyse() {
+    setLoading(true); setErr(''); setResult(null);
     try {
-      const res = await fetch('/api/analyse', {
+      const res = await fetch('/api/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock, history: newConv }),
-      }).then(r => r.json());
-      if (res.error) throw new Error(res.error);
-      setConv(res.conv);
-      setFuItems(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, a: res.text } : it));
-    } catch (e) {
-      setFuItems(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, a: 'Erro: ' + e.message } : it));
-    }
-    setFuL(false);
-  };
-
-  const rCol = result && result.rating ? G[PILL[result.rating]] : null;
-
+        body: JSON.stringify({ stock }),
+      });
+      const d = await res.json();
+      if (d.error) { setErr(d.error); }
+      else {
+        setResult(d);
+        if (d.rating) {
+          onRatingSet(stock.t, d.rating, d.text);
+        }
+      }
+    } catch (e) { setErr(e.message); }
+    setLoading(false);
+  }
   return (
-    <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 460, background: G.surf, borderLeft: `1px solid ${G.bdr}`, zIndex: 200, display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,.1)' }}>
-      <div style={{ padding: '18px 22px', borderBottom: `1px solid ${G.bdr}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div>
-          <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 20, fontWeight: 500 }}>{ticker}</div>
-          <div style={{ fontSize: 12, color: G.txt3, marginTop: 3 }}>{stock && stock.n}</div>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,23,20,.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: G.surf, borderRadius: 16, padding: 28, width: 480, boxShadow: '0 8px 40px rgba(0,0,0,.18)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'DM Mono,monospace', fontWeight: 600, fontSize: 15 }}>{stock.t} <span style={{ color: G.muted, fontWeight: 400, fontSize: 13 }}>{stock.n}</span></div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: G.muted, fontSize: 20, lineHeight: 1 }}>x</button>
         </div>
-        <button onClick={onClose} style={{ width: 30, height: 30, border: `1px solid ${G.bdr}`, background: 'transparent', color: G.txt3, cursor: 'pointer', fontSize: 16, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>x</button>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
-        {stock && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
-            {[
-              { l: 'Valor', v: 'EUR' + stock.v.toFixed(2), c: G.txt },
-              { l: 'P&L', v: (stock.pnl >= 0 ? '+' : '') + 'EUR' + Math.abs(stock.pnl).toFixed(2), c: stock.pnl >= 0 ? G.sb.c : G.ss.c },
-              { l: 'P&L %', v: (stock.pp >= 0 ? '+' : '') + stock.pp.toFixed(2) + '%', c: stock.pp >= 0 ? G.sb.c : G.ss.c },
-              { l: 'Peso', v: stock.w.toFixed(2) + '%', c: G.txt },
-            ].map(({ l, v, c }) => (
-              <div key={l} style={{ background: G.surf2, border: `1px solid ${G.bdr}`, padding: 12, borderRadius: 10 }}>
-                <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.txt3, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 }}>{l}</div>
-                <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 14, fontWeight: 500, color: c }}>{v}</div>
-              </div>
-            ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+          {[['Valor', 'EUR ' + fmt(stock.v)], ['P&L', (stock.pnl >= 0 ? '+' : '') + 'EUR ' + fmt(stock.pnl)], ['Variacao', (stock.pp >= 0 ? '+' : '') + fmt(stock.pp) + '%'], ['Peso', fmt(stock.w) + '%']].map(([k,v]) => (
+            <div key={k} style={{ background: G.bg, borderRadius: 8, padding: '10px 14px' }}>
+              <div style={{ fontSize: 11, color: G.muted, marginBottom: 3 }}>{k}</div>
+              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 14, fontWeight: 500 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {!result && !loading && (
+          <button onClick={analyse} style={{ width: '100%', background: G.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+            Analisar com AI
+          </button>
+        )}
+        {loading && <div style={{ textAlign: 'center', color: G.muted, padding: 20 }}>A analisar...</div>}
+        {err && <div style={{ color: G.sell, fontSize: 13, marginTop: 8, padding: '10px 14px', background: G.sellL, borderRadius: 8 }}>{err}</div>}
+        {result && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ marginBottom: 10 }}><RatingPill r={result.rating} /></div>
+            <div style={{ fontSize: 13, color: G.text, lineHeight: 1.6, background: G.bg, borderRadius: 8, padding: '12px 14px' }}>{result.text}</div>
+            <button onClick={analyse} style={{ marginTop: 12, background: 'none', border: '1px solid ' + G.border, borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 12, color: G.muted }}>
+              Reanalisar
+            </button>
           </div>
         )}
-
-        {loading && <Spinner />}
-        {error && <div style={{ padding: 14, background: G.ss.bg, border: `1px solid ${G.ss.bdr}`, borderRadius: 10, color: G.ss.c, fontSize: 12, lineHeight: 1.6 }}>{error}</div>}
-
-        {result && !loading && (
-          <>
-            <div style={verdictStyle(result.rating)}>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 18, fontWeight: 500, color: rCol && rCol.c, marginBottom: 3 }}>{result.rating || 'N/A'}</div>
-              {result.text.match(/CONFIDENCE:\s*(\w+)/i) && (
-                <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: rCol && rCol.c, opacity: .65 }}>
-                  Confianca: {result.text.match(/CONFIDENCE:\s*(\w+)/i)[1]}
-                </div>
-              )}
-            </div>
-
-            <div style={{ background: G.surf2, border: `1px solid ${G.bdr}`, borderRadius: 10, padding: 16, fontSize: 12, lineHeight: 1.75, color: G.txt2 }}>
-              {[
-                { k: 'TESE BULL',       stops: ['TESE BEAR', 'CATALISADORES', 'RISCO PRINCIPAL', 'VEREDICTO'] },
-                { k: 'TESE BEAR',       stops: ['CATALISADORES', 'RISCO PRINCIPAL', 'VEREDICTO'] },
-                { k: 'CATALISADORES',   stops: ['RISCO PRINCIPAL', 'VEREDICTO'] },
-                { k: 'RISCO PRINCIPAL', stops: ['VEREDICTO'] },
-                { k: 'VEREDICTO',       stops: [] },
-              ].map(({ k, stops }) => {
-                const items = parseSection(result.text, k, stops);
-                if (!items.length) return null;
-                const isList = ['TESE BULL', 'TESE BEAR', 'CATALISADORES'].includes(k);
-                return (
-                  <div key={k}>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.txt3, letterSpacing: 1.5, textTransform: 'uppercase', margin: '14px 0 6px' }}>{k.replace('TESE ', '')}</div>
-                    {isList
-                      ? <ul style={{ listStyle: 'none', padding: 0 }}>{items.map((it, i) => (
-                          <li key={i} style={{ padding: '2px 0 2px 14px', position: 'relative' }}>
-                            <span style={{ position: 'absolute', left: 0, color: G.txt3 }}>-</span>{it}
-                          </li>
-                        ))}</ul>
-                      : <p style={{ lineHeight: 1.7 }}>{items.join(' ')}</p>
-                    }
-                  </div>
-                );
-              })}
-            </div>
-
-            {fuItems.map((it, i) => (
-              <div key={i}>
-                <div style={{ marginTop: 12, padding: '11px 13px', background: G.surf2, border: `1px solid ${G.bdr}`, borderRadius: 10 }}>
-                  <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.txt3, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 }}>Tu</div>
-                  <div style={{ fontSize: 13, color: G.txt }}>{it.q}</div>
-                </div>
-                {it.a
-                  ? <div style={{ marginTop: 5, padding: 13, background: G.surf, border: `1px solid ${G.bdr}`, borderRadius: 10 }}>
-                      <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.b.c, opacity: .7, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 }}>Apex Analyst</div>
-                      <div style={{ fontSize: 12, color: G.txt2, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{it.a}</div>
-                    </div>
-                  : <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${G.bdr}`, borderTopColor: G.txt2, animation: 'spin .7s linear infinite' }} />
-                    </div>
-                }
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      <div style={{ padding: '12px 18px', borderTop: `1px solid ${G.bdr}`, display: 'flex', gap: 7, flexShrink: 0 }}>
-        <input value={fuQ} onChange={e => setFuQ(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && sendFU()}
-          placeholder="Pergunta ao analista..."
-          style={{ flex: 1, background: G.surf2, border: `1px solid ${G.bdr}`, color: G.txt, fontFamily: 'DM Sans,sans-serif', fontSize: 12, padding: '9px 12px', borderRadius: 8, outline: 'none' }} />
-        <button onClick={sendFU} disabled={fuLoading}
-          style={{ padding: '9px 16px', background: G.txt, border: 'none', color: G.bg, fontSize: 12, cursor: 'pointer', borderRadius: 8, fontWeight: 500, opacity: fuLoading ? .6 : 1 }}>
-          Enviar
-        </button>
       </div>
     </div>
   );
 }
 
-// Batch Analyser
-function BatchAnalyser({ port, ratings, onRatingSet, onClose }) {
-  const unrated  = port.filter(x => !ratings[x.t]);
+function BatchAnalyser({ portfolio, ratings, onRatingSet, onClose }) {
+  const unrated = portfolio.filter(s => !ratings[s.t] || ratings[s.t] === 'N/A');
+  const [log, setLog] = useState([]);
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [running,  setRunning]  = useState(false);
-  const [done,     setDone]     = useState(false);
-  const [log,      setLog]      = useState([]);
   const runRef = useRef(false);
 
   useEffect(() => {
@@ -278,286 +112,500 @@ function BatchAnalyser({ port, ratings, onRatingSet, onClose }) {
 
   async function runBatch() {
     setRunning(true); setDone(false); setLog([]); setProgress(0);
-    const list = port.filter(x => !ratings[x.t]);
-    for (let i = 0; i < list.length; i++) {
-      const stock = list[i];
-      setLog(prev => [...prev, { t: stock.t, status: 'a processar...' }]);
+    for (let i = 0; i < unrated.length; i++) {
+      const stock = unrated[i];
+      setLog(prev => [...prev, { t: stock.t, status: 'loading' }]);
       try {
         const res = await fetch('/api/batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stock }),
-        }).then(r => r.json());
-        if (res.error) throw new Error(res.error);
-        if (res.rating) onRatingSet(stock.t, res.rating, res.text);
-        setLog(prev => prev.map((l, idx) => idx === i ? { ...l, status: res.rating || '?', ok: true } : l));
+        });
+        const d = await res.json();
+        if (d.error) {
+          setLog(prev => prev.map(x => x.t === stock.t ? { ...x, status: 'error', msg: d.error } : x));
+        } else {
+          if (d.rating) onRatingSet(stock.t, d.rating, d.text);
+          setLog(prev => prev.map(x => x.t === stock.t ? { ...x, status: 'ok', rating: d.rating } : x));
+        }
       } catch (e) {
-        setLog(prev => prev.map((l, idx) => idx === i ? { ...l, status: 'erro: ' + e.message.slice(0,30), ok: false } : l));
+        setLog(prev => prev.map(x => x.t === stock.t ? { ...x, status: 'error', msg: e.message } : x));
       }
       setProgress(i + 1);
-      if (i < list.length - 1) await new Promise(r => setTimeout(r, 3000));
     }
     setRunning(false); setDone(true);
   }
 
-  const pct = unrated.length > 0 ? Math.round((progress / unrated.length) * 100) : 100;
+  const total = unrated.length;
+  const pct = total > 0 ? Math.round((progress / total) * 100) : 100;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,23,20,.4)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={e => { if (e.target === e.currentTarget && !running) onClose(); }}>
-      <div style={{ background: G.surf, borderRadius: 16, padding: 28, width: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      onClick={done ? onClose : undefined}>
+      <div style={{ background: G.surf, borderRadius: 16, padding: 28, width: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 14, fontWeight: 500 }}>Analisar Tudo</div>
-          <button onClick={onClose} disabled={running}
-            style={{ background: 'none', border: `1px solid ${G.bdr}`, cursor: running ? 'not-allowed' : 'pointer', borderRadius: 7, padding: '4px 10px', color: G.txt3, fontSize: 12, opacity: running ? .5 : 1 }}>
-            {done ? 'Fechar' : 'Cancelar'}
-          </button>
+          <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 14, fontWeight: 500 }}>Analisar Portfolio</div>
+          {done && <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: G.muted, fontSize: 18 }}>x</button>}
         </div>
-        <div style={{ fontSize: 12, color: G.txt2 }}>
-          {unrated.length === 0
-            ? <span style={{ color: G.sb.c }}>Todos os {port.length} activos ja tem rating!</span>
-            : 'A analisar ' + unrated.length + ' activo(s) com DeepSeek - ~3s entre cada um.'}
-        </div>
-        {unrated.length > 0 && (
+        {total === 0 ? (
+          <div style={{ color: G.muted, fontSize: 13, textAlign: 'center', padding: 20 }}>Todos os stocks ja foram analisados.</div>
+        ) : (
           <>
-            <div style={{ background: G.surf2, borderRadius: 8, height: 6, overflow: 'hidden' }}>
-              <div style={{ background: G.b.c, height: '100%', width: `${pct}%`, transition: 'width .3s' }} />
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: G.muted, marginBottom: 6 }}>
+                <span>{running ? 'A analisar ' + progress + ' / ' + total : done ? 'Concluido' : 'A preparar...'}</span>
+                <span>{pct}%</span>
+              </div>
+              <div style={{ background: G.bg, borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                <div style={{ background: G.accent, width: pct + '%', height: '100%', borderRadius: 99, transition: 'width .4s ease' }} />
+              </div>
             </div>
-            <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: G.txt3 }}>{progress}/{unrated.length} - {pct}%</div>
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {log.map(entry => (
+                <div key={entry.t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: G.bg, borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 600, minWidth: 52 }}>{entry.t}</span>
+                  {entry.status === 'loading' && <span style={{ color: G.muted }}>A analisar...</span>}
+                  {entry.status === 'ok' && <RatingPill r={entry.rating} />}
+                  {entry.status === 'error' && <span style={{ color: G.sell, fontSize: 12 }}>Erro: {(entry.msg || '').slice(0,60)}</span>}
+                </div>
+              ))}
+            </div>
+            {done && (
+              <button onClick={onClose} style={{ background: G.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 0', fontWeight: 600, cursor: 'pointer' }}>
+                Fechar
+              </button>
+            )}
           </>
         )}
-        {log.length > 0 && (
-          <div style={{ overflowY: 'auto', maxHeight: 300, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {log.map((l, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: G.surf2, borderRadius: 7, fontSize: 12 }}>
-                <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 500 }}>{l.t}</span>
-                <span style={{ color: l.ok === true ? G.sb.c : l.ok === false ? G.ss.c : G.txt3 }}>{l.status}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {done && <div style={{ fontSize: 12, color: G.sb.c, fontWeight: 500 }}>Concluido. Spotlight actualizado.</div>}
       </div>
     </div>
   );
 }
 
-// Main App
-export default function ApexApp() {
-  const [tab,       setTab]       = useState('portfolio');
-  const [ratings,   setRatings]   = useState({});
-  const [port,      setPort]      = useState(PORTFOLIO_DEFAULT);
-  const [filter,    setFilter]    = useState('all');
-  const [panel,     setPanel]     = useState(null);
-  const [showBatch, setShowBatch] = useState(false);
-  const [newT,      setNewT]      = useState('');
-  const [newV,      setNewV]      = useState('');
-  const [newP,      setNewP]      = useState('');
+function NewsPanel({ portfolio }) {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
 
+  useEffect(() => {
+    if (!portfolio || portfolio.length === 0) return;
+    const tickers = portfolio.map(s => s.t).slice(0, 15).join(',');
+    fetch('/api/news?tickers=' + tickers)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) setNews(d);
+        else setErr(d.error || 'Erro ao carregar noticias');
+        setLoading(false);
+      })
+      .catch(e => { setErr(e.message); setLoading(false); });
+  }, [portfolio]);
+
+  if (loading) return <div style={{ padding: 32, textAlign: 'center', color: G.muted }}>A carregar noticias...</div>;
+  if (err) return <div style={{ padding: 24, color: G.sell, background: G.sellL, borderRadius: 10, margin: 16 }}>{err}</div>;
+  if (news.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: G.muted }}>Sem noticias recentes.</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }}>
+      {news.map((n, i) => {
+        const relevant = n.sentiment !== undefined ? Math.abs(n.sentiment) > 0.35 : false;
+        const ts = n.datetime ? new Date(n.datetime * 1000).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '';
+        return (
+          <a key={i} href={n.url || '#'} target="_blank" rel="noreferrer"
+            style={{ display: 'block', background: G.surf, border: '1px solid ' + G.border, borderRadius: 12, padding: '14px 16px', textDecoration: 'none', color: G.text }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+              <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, fontWeight: 700, background: G.accentL, color: G.accent, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+                {n.ticker || ''}
+              </span>
+              {relevant && (
+                <span style={{ fontSize: 11, fontWeight: 700, background: '#FFF8E1', color: '#F57F17', borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+                  RELEVANTE
+                </span>
+              )}
+              <span style={{ fontSize: 11, color: G.muted, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{ts}</span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.45, color: G.text }}>{n.headline}</div>
+            {n.summary && <div style={{ fontSize: 12, color: G.muted, marginTop: 5, lineHeight: 1.4 }}>{n.summary.slice(0, 120)}{n.summary.length > 120 ? '...' : ''}</div>}
+            <div style={{ fontSize: 11, color: G.muted, marginTop: 6 }}>{n.source || ''}</div>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function InsidersPanel({ portfolio }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState('');
+
+  const tickers = portfolio.map(s => s.t);
+
+  useEffect(() => {
+    if (!selected && tickers.length > 0) setSelected(tickers[0]);
+  }, [portfolio]);
+
+  useEffect(() => {
+    if (!selected) return;
+    setLoading(true); setData([]);
+    fetch('/api/insiders?symbol=' + selected)
+      .then(r => r.json())
+      .then(d => { setData(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [selected]);
+
+  return (
+    <div style={{ padding: 16 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {tickers.slice(0, 15).map(t => (
+          <button key={t} onClick={() => setSelected(t)}
+            style={{ background: selected === t ? G.accent : G.bg, color: selected === t ? '#fff' : G.text, border: '1px solid ' + (selected === t ? G.accent : G.border), borderRadius: 8, padding: '5px 12px', fontSize: 12, fontFamily: 'DM Mono,monospace', fontWeight: 600, cursor: 'pointer' }}>
+            {t}
+          </button>
+        ))}
+      </div>
+      {loading && <div style={{ textAlign: 'center', color: G.muted, padding: 20 }}>A carregar...</div>}
+      {!loading && data.length === 0 && <div style={{ textAlign: 'center', color: G.muted, padding: 20 }}>Sem transacoes de insiders recentes.</div>}
+      {!loading && data.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {data.map((d, i) => {
+            const isBuy = d.type === 'buy';
+            return (
+              <div key={i} style={{ background: G.surf, border: '1px solid ' + G.border, borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 10, background: isBuy ? G.accentL : G.sellL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 20 }}>{isBuy ? '+' : '-'}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: G.text }}>{d.name}</div>
+                  <div style={{ fontSize: 12, color: G.muted }}>{d.position}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 13, fontWeight: 700, color: isBuy ? G.accent : G.sell }}>
+                    {isBuy ? '+' : '-'}EUR {fmtK(d.value || 0)}
+                  </div>
+                  <div style={{ fontSize: 11, color: G.muted }}>{d.shares ? fmtK(d.shares) + ' acoes' : ''}</div>
+                  <div style={{ fontSize: 11, color: G.muted }}>{d.date || ''}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OverviewPanel({ portfolio, ratings }) {
+  const total = portfolio.reduce((s, x) => s + (x.v || 0), 0);
+  const totalPnl = portfolio.reduce((s, x) => s + (x.pnl || 0), 0);
+  const totalPnlPct = total > 0 ? (totalPnl / (total - totalPnl)) * 100 : 0;
+
+  // HHI - concentracao
+  const hhi = portfolio.reduce((s, x) => s + Math.pow((x.w || 0) / 100, 2), 0);
+  const hhiLabel = hhi > 0.25 ? 'Alto' : hhi > 0.12 ? 'Medio' : 'Baixo';
+  const hhiColor = hhi > 0.25 ? G.sell : hhi > 0.12 ? G.warn : G.accent;
+
+  // Sector breakdown
+  const sectors = {};
+  portfolio.forEach(s => {
+    const sec = s.s || 'Outro';
+    if (!sectors[sec]) sectors[sec] = { value: 0, count: 0 };
+    sectors[sec].value += s.v || 0;
+    sectors[sec].count++;
+  });
+  const sectorList = Object.entries(sectors).sort((a,b) => b[1].value - a[1].value);
+
+  // Winners / Losers
+  const sorted = [...portfolio].sort((a,b) => (b.pp || 0) - (a.pp || 0));
+  const winners = sorted.slice(0, 3);
+  const losers = sorted.slice(-3).reverse();
+
+  // Ratings breakdown
+  const ratingCounts = { STRONG_BUY: 0, BUY: 0, HOLD: 0, SELL: 0, STRONG_SELL: 0 };
+  let rated = 0;
+  portfolio.forEach(s => {
+    const r = ratings[s.t];
+    if (r && ratingCounts[r] !== undefined) { ratingCounts[r]++; rated++; }
+  });
+  const sellSignals = (ratingCounts.SELL || 0) + (ratingCounts.STRONG_SELL || 0);
+  const buySignals = (ratingCounts.STRONG_BUY || 0) + (ratingCounts.BUY || 0);
+
+  // Alertas
+  const alerts = [];
+  if (hhi > 0.25) alerts.push({ type: 'danger', msg: 'Concentracao muito alta (HHI ' + fmt(hhi*100,0) + '). Top ' + sectorList[0]?.[0] + ' domina ' + fmt(sectorList[0]?.[1].value / total * 100, 0) + '% do portfolio.' });
+  if (sellSignals > 0) alerts.push({ type: 'warn', msg: sellSignals + ' stock(s) com sinal de venda. Rever posicoes.' });
+  const bigPos = portfolio.filter(s => (s.w || 0) > 30);
+  if (bigPos.length > 0) alerts.push({ type: 'warn', msg: bigPos.map(s => s.t + ' (' + fmt(s.w,1) + '%)').join(', ') + ' com peso excessivo (>30%).' });
+  const redPnl = portfolio.filter(s => (s.pnl || 0) < 0);
+  if (redPnl.length > 3) alerts.push({ type: 'info', msg: redPnl.length + ' posicoes em prejuizo. Considera stop-loss ou media de baixo.' });
+
+  const Card = ({ children, style }) => (
+    <div style={{ background: G.surf, border: '1px solid ' + G.border, borderRadius: 14, padding: 18, ...style }}>{children}</div>
+  );
+
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Alertas */}
+      {alerts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {alerts.map((a, i) => (
+            <div key={i} style={{
+              padding: '10px 14px', borderRadius: 10, fontSize: 13, lineHeight: 1.45,
+              background: a.type === 'danger' ? G.sellL : a.type === 'warn' ? G.warnL : G.holdL,
+              color: a.type === 'danger' ? G.sell : a.type === 'warn' ? G.warn : G.hold,
+              borderLeft: '3px solid ' + (a.type === 'danger' ? G.sell : a.type === 'warn' ? G.warn : G.hold)
+            }}>
+              {a.type === 'danger' ? '[!] ' : a.type === 'warn' ? '[!] ' : '[i] '}{a.msg}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Resumo + HHI */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        {[
+          ['Portfolio Total', 'EUR ' + fmtK(total)],
+          ['P&L Total', (totalPnl >= 0 ? '+' : '') + 'EUR ' + fmtK(totalPnl) + ' (' + (totalPnlPct >= 0 ? '+' : '') + fmt(totalPnlPct, 1) + '%)'],
+          ['Concentracao HHI', hhiLabel + ' (' + fmt(hhi * 100, 1) + ')'],
+        ].map(([k, v], i) => (
+          <Card key={k}>
+            <div style={{ fontSize: 11, color: G.muted, marginBottom: 5 }}>{k}</div>
+            <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 14, fontWeight: 700, color: i === 2 ? hhiColor : i === 1 ? (totalPnl >= 0 ? G.accent : G.sell) : G.text }}>{v}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Sector breakdown */}
+      <Card>
+        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Exposicao por Sector</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sectorList.map(([sec, { value, count }]) => {
+            const pct = total > 0 ? (value / total) * 100 : 0;
+            return (
+              <div key={sec}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span>{sec} <span style={{ color: G.muted, fontSize: 11 }}>({count} pos.)</span></span>
+                  <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 600 }}>{fmt(pct, 1)}%</span>
+                </div>
+                <div style={{ background: G.bg, borderRadius: 99, height: 7, overflow: 'hidden' }}>
+                  <div style={{ background: G.accent, width: pct + '%', height: '100%', borderRadius: 99 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Winners / Losers */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <Card>
+          <div style={{ fontWeight: 600, fontSize: 13, color: G.accent, marginBottom: 10 }}>Top Performers</div>
+          {winners.map(s => (
+            <div key={s.t} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid ' + G.border, fontSize: 12 }}>
+              <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 600 }}>{s.t}</span>
+              <span style={{ color: G.accent, fontWeight: 600 }}>{s.pp >= 0 ? '+' : ''}{fmt(s.pp, 1)}%</span>
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <div style={{ fontWeight: 600, fontSize: 13, color: G.sell, marginBottom: 10 }}>Piores Performers</div>
+          {losers.map(s => (
+            <div key={s.t} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid ' + G.border, fontSize: 12 }}>
+              <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 600 }}>{s.t}</span>
+              <span style={{ color: G.sell, fontWeight: 600 }}>{s.pp >= 0 ? '+' : ''}{fmt(s.pp, 1)}%</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {/* Ratings breakdown */}
+      {rated > 0 && (
+        <Card>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Distribuicao de Ratings ({rated}/{portfolio.length} analisados)</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {Object.entries(ratingCounts).map(([r, n]) => n > 0 ? (
+              <div key={r} style={{ background: RATING_COLORS[r].bg, color: RATING_COLORS[r].text, borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700 }}>
+                {RATING_COLORS[r].label}: {n}
+              </div>
+            ) : null)}
+          </div>
+          {rated > 0 && (
+            <div style={{ fontSize: 12, color: G.muted, marginTop: 10, lineHeight: 1.5 }}>
+              {buySignals > sellSignals ? 'Maioria das posicoes analisadas com sinal positivo. ' : sellSignals > buySignals ? 'Atencao: mais sinais de venda do que compra. ' : 'Portfolio equilibrado em termos de ratings. '}
+              Racio Buy/Sell: {buySignals}/{sellSignals}.
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function PortfolioTable({ portfolio, ratings, ratingTexts, onAnalyse }) {
+  const [filter, setFilter] = useState('Todos');
+  const filters = ['Todos', 'Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'];
+  const rmap = { 'Strong Buy': 'STRONG_BUY', 'Buy': 'BUY', 'Hold': 'HOLD', 'Sell': 'SELL', 'Strong Sell': 'STRONG_SELL' };
+
+  const filtered = filter === 'Todos' ? portfolio : portfolio.filter(s => ratings[s.t] === rmap[filter]);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, padding: '0 16px 12px', flexWrap: 'wrap' }}>
+        {filters.map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            style={{ background: filter === f ? G.text : G.bg, color: filter === f ? G.surf : G.muted, border: '1px solid ' + G.border, borderRadius: 20, padding: '4px 13px', fontSize: 12, cursor: 'pointer', fontWeight: filter === f ? 600 : 400 }}>
+            {f}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 16px' }}>
+        {filtered.map(s => {
+          const r = ratings[s.t];
+          const hasRating = r && RATING_COLORS[r];
+          return (
+            <div key={s.t} style={{ background: G.surf, border: '1px solid ' + G.border, borderRadius: 12, padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'start' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontFamily: 'DM Mono,monospace', fontWeight: 700, fontSize: 14 }}>{s.t}</span>
+                  <span style={{ fontSize: 12, color: G.muted }}>{s.n}</span>
+                  {hasRating && <RatingPill r={r} />}
+                </div>
+                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: G.muted }}>
+                  <span>EUR {fmt(s.v)}</span>
+                  <span style={{ color: (s.pnl || 0) >= 0 ? G.accent : G.sell }}>
+                    {(s.pnl || 0) >= 0 ? '+' : ''}EUR {fmt(s.pnl)} ({(s.pp || 0) >= 0 ? '+' : ''}{fmt(s.pp)}%)
+                  </span>
+                  <span>{fmt(s.w)}%</span>
+                </div>
+                {ratingTexts[s.t] && (
+                  <div style={{ fontSize: 12, color: G.muted, marginTop: 6, lineHeight: 1.4, fontStyle: 'italic' }}>
+                    {ratingTexts[s.t].slice(0, 100)}{ratingTexts[s.t].length > 100 ? '...' : ''}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => onAnalyse(s)}
+                style={{ background: G.bg, border: '1px solid ' + G.border, borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', color: G.text, whiteSpace: 'nowrap' }}>
+                Analisar
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function MainApexApp() {
+  const [portfolio] = useState(PORTFOLIO_DEFAULT);
+  const [ratings, setRatings] = useState({});
+  const [ratingTexts, setRatingTexts] = useState({});
+  const [tab, setTab] = useState('Portfolio');
+  const [showBatch, setShowBatch] = useState(false);
+  const [analyseStock, setAnalyseStock] = useState(null);
+
+  const total = portfolio.reduce((s, x) => s + (x.v || 0), 0);
+  const totalPnl = portfolio.reduce((s, x) => s + (x.pnl || 0), 0);
+  const ratedCount = portfolio.filter(s => ratings[s.t] && RATING_COLORS[ratings[s.t]]).length;
+
+  // Load saved ratings from API on mount
   useEffect(() => {
     fetch('/api/ratings')
       .then(r => r.json())
-      .then(data => { if (data && !data.error) setRatings(data); })
+      .then(d => {
+        if (d && typeof d === 'object' && !d.error) {
+          const r = {}, t = {};
+          Object.entries(d).forEach(([ticker, val]) => {
+            if (typeof val === 'object') { r[ticker] = val.rating; t[ticker] = val.text || ''; }
+            else { r[ticker] = val; }
+          });
+          setRatings(r);
+          setRatingTexts(t);
+        }
+      })
       .catch(() => {});
   }, []);
 
-  const setRating = useCallback(async (ticker, r, analysisText) => {
-    setRatings(prev => ({ ...prev, [ticker]: r }));
-    await fetch('/api/ratings', {
+  const handleRatingSet = useCallback((ticker, rating, text) => {
+    setRatings(prev => ({ ...prev, [ticker]: rating }));
+    setRatingTexts(prev => ({ ...prev, [ticker]: text || '' }));
+    // Persist to API
+    fetch('/api/ratings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker, rating: r, analysis_text: analysisText || null }),
+      body: JSON.stringify({ ticker, rating, text: text || '' }),
     }).catch(() => {});
   }, []);
 
-  const cycleRating = (ticker) => {
-    const cur  = ratings[ticker] || null;
-    const next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
-    if (next === null) {
-      setRatings(prev => { const n = { ...prev }; delete n[ticker]; return n; });
-      fetch('/api/ratings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticker, rating: 'N/A', analysis_text: null }),
-      }).catch(() => {});
-    } else {
-      setRating(ticker, next, null);
-    }
-  };
+  const tabs = ['Portfolio', 'Insiders', 'Noticias', 'Overview'];
 
-  const addStock = () => {
-    const t = newT.toUpperCase().trim();
-    const v = parseFloat(newV) || 0;
-    const p = parseFloat(newP) || 0;
-    if (!t || !v) return;
-    const tot = port.reduce((s, x) => s + x.v, 0) + v;
-    const newPort = [...port.map(x => ({ ...x, w: (x.v / tot) * 100 })),
-      { t, n: t, v, pnl: v - (v / (1 + p / 100)), pp: p, w: (v / tot) * 100, s: 'Other', buy_price: null }];
-    setPort(newPort);
-    setNewT(''); setNewV(''); setNewP('');
-  };
-
-  const totalVal   = port.reduce((s, x) => s + x.v, 0);
-  const totalPnl   = port.reduce((s, x) => s + x.pnl, 0);
-  const ratedCount = Object.keys(ratings).filter(k => ratings[k] && ratings[k] !== 'N/A').length;
-  const filtered   = filter === 'all' ? port : port.filter(x => (ratings[x.t] || null) === (filter === 'N/A' ? null : filter));
-
-  const spGroups = {
-    'Strong Buy':  port.filter(x => ratings[x.t] === 'Strong Buy'),
-    'Buy':         port.filter(x => ratings[x.t] === 'Buy'),
-    'Sell':        port.filter(x => ratings[x.t] === 'Sell'),
-    'Strong Sell': port.filter(x => ratings[x.t] === 'Strong Sell'),
-  };
-
-  const tabItems    = [{ id: 'portfolio', label: 'Portfolio' }, { id: 'insider', label: 'Insiders' }, { id: 'news', label: 'Noticias' }, { id: 'overview', label: 'Overview' }];
-  const filterItems = ['all', 'Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'];
+  const ratingGroups = { STRONG_BUY: [], BUY: [], SELL: [], STRONG_SELL: [] };
+  portfolio.forEach(s => {
+    const r = ratings[s.t];
+    if (r && ratingGroups[r]) ratingGroups[r].push(s);
+  });
 
   return (
-    <div style={{ fontFamily: 'DM Sans,sans-serif', background: G.bg, minHeight: '100vh', color: G.txt, fontSize: 14 }}>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes fup  { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: translateY(0) } }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: ${G.bdr2}; border-radius: 2px; }
-        input::placeholder { color: ${G.txt3}; }
-      `}</style>
-
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(246,244,241,.95)', backdropFilter: 'blur(14px)', borderBottom: `1px solid ${G.bdr}`, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
-        <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, fontWeight: 500, letterSpacing: 3, textTransform: 'uppercase' }}>
-          Apex<span style={{ color: G.txt3 }}> / </span>Intel
-        </div>
-        <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {[
-            { l: 'Total', v: 'EUR' + totalVal.toFixed(2) },
-            { l: 'P&L', v: (totalPnl >= 0 ? '+' : '') + 'EUR' + totalPnl.toFixed(2) },
-            { l: 'Rated', v: ratedCount + '/' + port.length },
-          ].map(({ l, v }) => (
-            <div key={l}>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.txt3, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 13, fontWeight: 500 }}>{v}</div>
+    <div style={{ minHeight: '100vh', background: G.bg, fontFamily: 'DM Sans,sans-serif', color: G.text }}>
+      {/* Header */}
+      <div style={{ background: G.surf, borderBottom: '1px solid ' + G.border, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ fontFamily: 'DM Mono,monospace', fontWeight: 700, fontSize: 16, letterSpacing: '.5px' }}>Apex / Intel</div>
+        <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+          {[['Total', 'EUR ' + fmtK(total)], ['P&L', (totalPnl >= 0 ? '+' : '') + 'EUR ' + fmtK(totalPnl)], ['Rated', ratedCount + '/' + portfolio.length]].map(([k,v]) => (
+            <div key={k}>
+              <div style={{ fontSize: 10, color: G.muted }}>{k}</div>
+              <div style={{ fontFamily: 'DM Mono,monospace', fontWeight: 700, fontSize: 13, color: k === 'P&L' ? (totalPnl >= 0 ? G.accent : G.sell) : G.text }}>{v}</div>
             </div>
           ))}
-          <button onClick={() => setShowBatch(true)}
-            style={{ padding: '6px 14px', background: G.txt, border: 'none', color: G.bg, fontSize: 11, fontWeight: 500, cursor: 'pointer', borderRadius: 7, letterSpacing: .5 }}>
-            Analisar Tudo
-          </button>
         </div>
+        <button onClick={() => setShowBatch(true)}
+          style={{ background: G.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          Analisar Tudo
+        </button>
       </div>
 
-      <div style={{ display: 'flex', background: G.surf, borderBottom: `1px solid ${G.bdr}`, padding: '0 24px', overflowX: 'auto' }}>
-        {tabItems.map(({ id, label }) => (
-          <div key={id} onClick={() => setTab(id)}
-            style={{ padding: '12px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer', color: tab === id ? G.txt : G.txt3, borderBottom: tab === id ? `2px solid ${G.txt}` : '2px solid transparent', whiteSpace: 'nowrap', transition: 'all .15s', userSelect: 'none' }}>
-            {label}
+      {/* Ratings summary bar */}
+      <div style={{ background: G.surf, borderBottom: '1px solid ' + G.border, padding: '10px 20px', display: 'flex', gap: 20, overflowX: 'auto' }}>
+        {Object.entries(ratingGroups).map(([r, stocks]) => (
+          <div key={r} style={{ minWidth: 120 }}>
+            <div style={{ marginBottom: 5 }}><RatingPill r={r} /></div>
+            {stocks.length === 0 ? (
+              <div style={{ fontSize: 11, color: G.muted }}>Sem posicoes.</div>
+            ) : (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {stocks.map(s => (
+                  <span key={s.t} style={{ fontSize: 11, fontFamily: 'DM Mono,monospace', background: G.bg, borderRadius: 4, padding: '2px 5px' }}>{s.t}</span>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: 24 }}>
-        {tab === 'portfolio' && (
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 26 }}>
-              {[
-                { label: 'Strong Buy', key: 'sb', rkey: 'Strong Buy' },
-                { label: 'Buy',        key: 'b',  rkey: 'Buy' },
-                { label: 'Sell',       key: 's',  rkey: 'Sell' },
-                { label: 'Strong Sell',key: 'ss', rkey: 'Strong Sell' },
-              ].map(({ label, key, rkey }) => (
-                <SpotlightCard key={rkey} label={label} colorKey={key} stocks={spGroups[rkey]} onOpen={setPanel} />
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, letterSpacing: 1.5, color: G.txt3, textTransform: 'uppercase' }}>
-                Posicoes - {filtered.length} activo{filtered.length !== 1 ? 's' : ''}{filter !== 'all' ? ' filtrados' : ''}
-              </div>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                {filterItems.map(f => (
-                  <button key={f} onClick={() => setFilter(f)}
-                    style={{ padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', borderRadius: 20, border: `1px solid ${filter === f ? G.txt : G.bdr2}`, background: filter === f ? G.txt : G.surf, color: filter === f ? G.bg : G.txt3 }}>
-                    {f === 'all' ? 'Todos' : f}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 7, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              {[
-                { id: 'nt', val: newT, set: setNewT, ph: 'TICKER', w: 95, up: true },
-                { id: 'nv', val: newV, set: setNewV, ph: 'Valor', w: 100, num: true },
-                { id: 'np', val: newP, set: setNewP, ph: 'P&L %', w: 80, num: true },
-              ].map(({ id, val, set, ph, w, up, num }) => (
-                <input key={id} value={val} onChange={e => set(up ? e.target.value.toUpperCase() : e.target.value)}
-                  placeholder={ph} type={num ? 'number' : 'text'}
-                  style={{ width: w, background: G.surf, border: `1px solid ${G.bdr}`, color: G.txt, fontFamily: 'DM Mono,monospace', fontSize: 12, padding: '7px 11px', borderRadius: 8, outline: 'none' }} />
-              ))}
-              <button onClick={addStock}
-                style={{ padding: '7px 16px', background: G.surf, border: `1px solid ${G.bdr2}`, color: G.txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', borderRadius: 8 }}>
-                + Adicionar
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 110px 60px 114px 88px', padding: '5px 13px', gap: 10, marginBottom: 3 }}>
-              {['', 'Activo', 'Valor', 'P&L', 'Peso', 'Rating', 'Analise'].map((h, i) => (
-                <div key={i} style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: G.txt3, letterSpacing: 1.5, textTransform: 'uppercase', textAlign: i > 1 ? 'right' : 'left' }}>{h}</div>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gap: 3 }}>
-              {filtered.map((s, i) => {
-                const r   = ratings[s.t] && ratings[s.t] !== 'N/A' ? ratings[s.t] : null;
-                const pos = s.pnl >= 0;
-                return (
-                  <div key={s.t}
-                    style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 110px 60px 114px 88px', alignItems: 'center', padding: '11px 13px', background: G.surf, border: `1px solid ${G.bdr}`, borderRadius: 10, gap: 10, animation: `fup .22s ease ${Math.min(i * .025, .3)}s both` }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 7, background: G.surf2, border: `1px solid ${G.bdr}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono,monospace', fontSize: 7, color: G.txt3, fontWeight: 500 }}>
-                      {s.t.slice(0, 4)}
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, fontWeight: 500 }}>{s.t}</div>
-                      <div style={{ fontSize: 11, color: G.txt3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.n}</div>
-                    </div>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, textAlign: 'right' }}>EUR{s.v.toFixed(2)}</div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, color: pos ? G.sb.c : G.ss.c }}>{pos ? '+' : ''}EUR{Math.abs(s.pnl).toFixed(2)}</div>
-                      <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: pos ? G.sb.c : G.ss.c, opacity: .8, marginTop: 1 }}>{pos ? '+' : ''}{s.pp.toFixed(2)}%</div>
-                    </div>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: G.txt3, textAlign: 'right' }}>{s.w.toFixed(2)}%</div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Pill rating={r} onClick={() => cycleRating(s.t)} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button onClick={() => setPanel(s.t)}
-                        style={{ padding: '5px 12px', background: G.surf2, border: `1px solid ${G.bdr}`, color: G.txt2, fontSize: 11, fontWeight: 500, cursor: 'pointer', borderRadius: 8, whiteSpace: 'nowrap', transition: 'all .13s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = G.txt; e.currentTarget.style.color = G.bg; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = G.surf2; e.currentTarget.style.color = G.txt2; }}>
-                        {r ? 'Ver analise' : 'Analisar'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {tab === 'overview' && <OverviewPanel port={port} ratings={ratings} />}
-        {tab === 'insider' && <InsiderPanel tickers={port.map(x => x.t)} />}
-        {tab === 'news' && <NewsPanel tickers={port.map(x => x.t)} />}
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid ' + G.border, background: G.surf, padding: '0 16px' }}>
+        {tabs.map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{ background: 'none', border: 'none', borderBottom: tab === t ? '2px solid ' + G.accent : '2px solid transparent', padding: '12px 16px', fontSize: 13, fontWeight: tab === t ? 600 : 400, color: tab === t ? G.text : G.muted, cursor: 'pointer' }}>
+            {t}
+          </button>
+        ))}
       </div>
 
-      {panel && (
-        <>
-          <div onClick={() => setPanel(null)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(26,23,20,.18)', zIndex: 150, backdropFilter: 'blur(2px)' }} />
-          <AnalysisPanel ticker={panel} port={port} ratings={ratings}
-            onClose={() => setPanel(null)} onRatingSet={setRating} />
-        </>
-      )}
+      {/* Content */}
+      <div style={{ maxWidth: 900, margin: '0 auto', paddingTop: 8 }}>
+        {tab === 'Portfolio' && (
+          <PortfolioTable portfolio={portfolio} ratings={ratings} ratingTexts={ratingTexts} onAnalyse={setAnalyseStock} />
+        )}
+        {tab === 'Insiders' && <InsidersPanel portfolio={portfolio} />}
+        {tab === 'Noticias' && <NewsPanel portfolio={portfolio} />}
+        {tab === 'Overview' && <OverviewPanel portfolio={portfolio} ratings={ratings} />}
+      </div>
 
       {showBatch && (
-        <BatchAnalyser port={port} ratings={ratings} onRatingSet={setRating} onClose={() => setShowBatch(false)} />
+        <BatchAnalyser portfolio={portfolio} ratings={ratings} onRatingSet={handleRatingSet} onClose={() => setShowBatch(false)} />
+      )}
+      {analyseStock && (
+        <AnalysisPanel stock={analyseStock} onClose={() => setAnalyseStock(null)} onRatingSet={handleRatingSet} />
       )}
     </div>
   );
