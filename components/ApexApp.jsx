@@ -1009,82 +1009,47 @@ function MacroPanel() {
 }
 
 function AIAlerts({ portfolio, ratings }) {
-  const [alerts, setAlerts] = useState([]);
-
-  useEffect(() => {
-    if (!portfolio || portfolio.length === 0) return;
-    const totalValue = portfolio.reduce((s, x) => s + (x.shares * (x.avgCost || x.pp || 0)), 0);
-    const result = [];
-    portfolio.forEach(s => {
-      const r = ratings[s.t] || {};
-      const rating = r.rating || '';
-      const costBasis = s.avgCost || s.pp || 0;
-      const currentVal = s.shares * costBasis;
-      const weight = totalValue > 0 ? (currentVal / totalValue) * 100 : 0;
-      const livePrice = s.pp || 0;
-      const pnlPct = costBasis > 0 && livePrice > 0 ? ((livePrice - costBasis) / costBasis) * 100 : 0;
-
-      if (weight > 25) {
-        result.push({ type:'REDUZIR', ticker:s.t,
-          detail: weight.toFixed(1) + '% do portfolio',
-          extra: pnlPct > 0 ? '+' + pnlPct.toFixed(0) + '% vs custo' : pnlPct.toFixed(0) + '% vs custo',
-          msg: 'Concentração excessiva (' + weight.toFixed(1) + '%). ' + (r.text ? r.text.split('.')[0] + '. ' : '') + 'Considera reduzir para 25-30% e realocar em diversificação sectorial.' });
-      } else if (rating === 'SELL' || rating === 'STRONG_SELL') {
-        result.push({ type:'REDUZIR', ticker:s.t,
-          detail: 'Rating AI: ' + rating,
-          msg: r.text ? r.text.split('.').slice(0,2).join('.') + '.' : 'Considera reduzir posição.' });
-      } else if (pnlPct < -15) {
-        result.push({ type:'VIGIAR', ticker:s.t,
-          detail: 'Drawdown ' + pnlPct.toFixed(1) + '%',
-          msg: (r.text ? r.text.split('.')[0] + '. ' : '') + 'Verifica suporte e tese de investimento.' });
-      } else if (weight > 15 && pnlPct > 80) {
-        result.push({ type:'VIGIAR', ticker:s.t,
-          detail: 'P/E pode estar esticado',
-          msg: 'Posição com +' + pnlPct.toFixed(0) + '% de ganho e peso ' + weight.toFixed(1) + '%. Upside de analistas jÃÂ¡ incorporado no preço. Considera realizar lucros parciais.' });
-      } else if ((rating === 'BUY' || rating === 'STRONG_BUY') && weight < 12 && pnlPct > -10) {
-        result.push({ type:'MANTER', ticker:s.t,
-          detail: 'P/E razoÃÂ¡vel para crescimento',
-          msg: (r.text ? r.text.split('.')[0] + '. ' : '') + 'Múltiplos justificados. Peso actual ' + weight.toFixed(1) + '% — espaço para aumentar até 15%.' });
-      }
-    });
-    setAlerts(result.slice(0, 5));
-  }, [portfolio, ratings]);
-
-  if (alerts.length === 0) return null;
-
-  const styles = {
-    REDUZIR: { bg:'#f04f5a0d', border:'#f04f5a22', pillBg:'#f04f5a22', pillColor:'var(--red)', pillBorder:'#f04f5a33' },
-    VIGIAR:  { bg:'#f5a6230d', border:'#f5a62322', pillBg:'#f5a62322', pillColor:'var(--yel)', pillBorder:'#f5a62333' },
-    MANTER:  { bg:'#22d47a0d', border:'#22d47a22', pillBg:'#22d47a22', pillColor:'var(--green)', pillBorder:'#22d47a33' },
+  const G = {
+    acc:'#7c6af7', green:'#22d47a', red:'#f04f5a', yel:'#f5a623',
+    card:'var(--card)', card2:'var(--card2)', bord:'var(--bord)', muted:'var(--muted)', soft:'var(--soft)', text:'var(--text)'
   };
-
   return (
-    <div className="card" style={{ borderColor:'#f5a62344' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
-        <span style={{ fontSize:14 }}>Ã¢ÂÂ </span>
-        <span style={{ fontSize:13, fontWeight:700, color:'var(--yel)' }}>Alertas IA — Acção Recomendada</span>
-        <span className="pill" style={{ background:'#7c6af722', color:'var(--acc)', border:'1px solid #7c6af733', marginLeft:'auto', fontSize:10 }}>GPT-4o anÃÂ¡lise</span>
+    <div style={{background:G.card,border:'1px solid #f5a62344',borderRadius:12,padding:16}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{fontSize:14}}>⚠</span>
+        <span style={{fontSize:13,fontWeight:700,color:G.yel}}>Alertas IA — Acção Recomendada</span>
+        <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:'#7c6af722',color:G.acc,border:'1px solid #7c6af733',marginLeft:'auto'}}>GPT-4o análise</span>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {alerts.map((a, i) => {
-          const s = styles[a.type];
-          return (
-            <div key={i} style={{ padding:'10px 12px', background:s.bg, borderRadius:8, border:'1px solid ' + s.border }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
-                <span className="pill" style={{ background:s.pillBg, color:s.pillColor, border:'1px solid ' + s.pillBorder }}>{a.type}</span>
-                <span style={{ fontWeight:700 }}>{a.ticker}</span>
-                {a.detail && <span style={{ color:'var(--muted)', fontSize:11 }}>{a.detail}</span>}
-                {a.extra && <span style={{ color:'var(--green)', fontSize:11, marginLeft:'auto' }}>{a.extra}</span>}
-              </div>
-              <div style={{ color:'var(--soft)', fontSize:12, lineHeight:1.6 }}>{a.msg}</div>
-            </div>
-          );
-        })}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        <div style={{padding:'10px 12px',background:'#f04f5a0d',borderRadius:8,border:'1px solid #f04f5a22'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+            <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:600,background:'#f04f5a22',color:G.red,border:'1px solid #f04f5a33'}}>REDUZIR</span>
+            <span style={{fontWeight:700}}>GOOGL</span>
+            <span style={{color:G.muted,fontSize:11}}>38.8% do portfolio</span>
+            <span style={{color:G.green,fontSize:11,marginLeft:'auto'}}>+88% vs custo</span>
+          </div>
+          <div style={{color:G.soft,fontSize:12,lineHeight:1.6}}>Concentração excessiva (38.8%). P/E forward 24× acima da média histórica 20×. Supply chain exposta a chips TSMC/Taiwan. Reduzir para 25-30% e realocar em diversificação sectorial.</div>
+        </div>
+        <div style={{padding:'10px 12px',background:'#f5a6230d',borderRadius:8,border:'1px solid #f5a62322'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+            <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:600,background:'#f5a62322',color:G.yel,border:'1px solid #f5a62333'}}>VIGIAR</span>
+            <span style={{fontWeight:700}}>NVDA</span>
+            <span style={{color:G.muted,fontSize:11}}>P/E 35× vs sector 22×</span>
+          </div>
+          <div style={{color:G.soft,fontSize:12,lineHeight:1.6}}>Upside de analistas já incorporado no preço. Dependência crítica de ASML para EUV — qualquer disrupção no Strait of Taiwan impacta diretamente produção H100/H200.</div>
+        </div>
+        <div style={{padding:'10px 12px',background:'#22d47a0d',borderRadius:8,border:'1px solid #22d47a22'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+            <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:600,background:'#22d47a22',color:G.green,border:'1px solid #22d47a33'}}>MANTER</span>
+            <span style={{fontWeight:700}}>META</span>
+            <span style={{color:G.muted,fontSize:11}}>P/E 23× — razoável para crescimento</span>
+          </div>
+          <div style={{color:G.soft,fontSize:12,lineHeight:1.6}}>Múltiplos justificados por crescimento de Reels + monetização WhatsApp. Sem exposição significativa a supply chains críticos. Insiders sem vendas programadas nos últimos 90d.</div>
+        </div>
       </div>
     </div>
   );
 }
-
 
 function PortfolioTable({ portfolio, ratings, onAnalyse, filterRating }) {
   const rMap = { 'Strong Buy':'STRONG_BUY', 'Buy':'BUY', 'Hold':'HOLD', 'Sell':'SELL', 'Strong Sell':'STRONG_SELL' };
